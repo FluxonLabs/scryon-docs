@@ -10,6 +10,7 @@ If you are new here, start with the [Overview](getting-started/overview.md) and 
 - **[Architecture](architecture/system-overview.md)** — the call processing pipeline, data model, storage layout, and observability stack.
 - **[API Reference](api/overview.md)** — every public REST endpoint, request/response shapes, error model, and authentication.
 - **[Features](features/diarization.md)** — deep-dives on diarization, transcription, audio preprocessing, speaker resolution, voice embedding, and analysis.
+- **[Android Client](android/overview.md)** — the native Android app: architecture, auth flows, the durable upload pipeline, voice profile setup, and more.
 - **[Operations](operations/deployment.md)** — deploying, monitoring, runbooks, and troubleshooting.
 - **[Development](development/contributing.md)** — contributing guidelines, testing, conventions, and database migrations.
 - **[Privacy & Security](privacy-and-security.md)** — what we store, what we never store, and the hard rules the codebase enforces.
@@ -39,6 +40,7 @@ If you are new here, start with the [Overview](getting-started/overview.md) and 
 | Repo | Purpose |
 |---|---|
 | [`scryon-backend`](https://github.com/FluxonLabs/scryon-backend) | Spring Boot service (Java 21). |
+| [`scryon-android`](https://github.com/FluxonLabs/scryon-android) | Native Android client (Kotlin + Compose). |
 | [`scryon-docs`](https://github.com/FluxonLabs/scryon-docs) | This documentation site. |
 
 > **GitBook setup.** This site is published to `docs.scryon.app` via GitBook Git Sync. See [GITBOOK_SETUP.md](GITBOOK_SETUP.md) for connecting your space and pointing the custom domain.

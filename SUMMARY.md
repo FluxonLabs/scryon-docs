@@ -51,6 +51,23 @@
 * [Coding conventions](development/coding-conventions.md)
 * [Database migrations](development/database-migrations.md)
 
+## Android Client
+
+* [Overview](android/overview.md)
+* [Getting started](android/getting-started.md)
+* [Configuration](android/configuration.md)
+* [Architecture](android/architecture.md)
+* [Authentication](android/auth.md)
+* [Upload pipeline](android/upload-pipeline.md)
+* [Status lifecycle](android/status-lifecycle.md)
+* [Networking](android/networking.md)
+* [Local stores](android/local-stores.md)
+* [Permissions](android/permissions.md)
+* [Voice profile setup](android/voice-profile.md)
+* [New-recording notifications](android/notifications.md)
+* [Delete & cancel](android/delete-and-cancel.md)
+* [Troubleshooting](android/troubleshooting.md)
+
 ## Privacy
 
 * [Privacy & security](privacy-and-security.md)
