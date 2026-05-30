@@ -2,6 +2,13 @@
 
 * [Welcome](README.md)
 
+## Onboarding
+
+* [Overview](onboarding/README.md)
+* [Backend engineer](onboarding/backend.md)
+* [Android engineer](onboarding/android.md)
+* [Glossary](onboarding/glossary.md)
+
 ## Getting Started
 
 * [Overview](getting-started/overview.md)
