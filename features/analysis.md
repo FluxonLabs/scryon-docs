@@ -122,6 +122,26 @@ After analysis succeeds, `CallPersistenceService.applyAnalysisSideEffects` walks
 
 The mapper **never invents** an owner — if the LLM is vague and no transcript speaker matches, the row carries null owner fields. The raw `ownerSpeaker` string is preserved for forensic debugging.
 
+### Intent classification (v2 additive)
+
+Each action item now carries a provider-neutral **`intent`** and optional **`intentMetadata`**. This is the contract between the LLM and the client for launcher chips:
+
+| `intent` | Meaning |
+|---|---|
+| `meeting` | Schedule a video / phone meeting |
+| `email` | Send / draft an email |
+| `call` | Phone the contact back |
+| `message` | Send a chat / SMS |
+| `reminder` | Self-reminder |
+| `task` | Track in a task system |
+| `none` | No launchable intent |
+
+The backend **classifies**; the client **launches**. The server never constructs deep links or knows which apps the user has installed. When the transcript was explicit ("let's hop on Zoom"), the LLM may set `intentMetadata.providerHint` — a reordering hint for the client's chip list, not a binding choice.
+
+`intent` and `intentMetadata` are persisted to Postgres (`action_items.intent`, `action_items.intent_metadata_json`) and surfaced on both `GET /api/actions` and `GET /api/calls/{id}/analysis`. Older rows have null intent — no chips rendered.
+
+See [API · Action items](../api/action-items.md#intent-classification) for the full metadata field reference and client integration notes.
+
 `executiveSummaryBullets`, `keyDiscussionPoints`, `sentiment`, and `tone` are **not** denormalised to Postgres. They live in the analysis JSON artifact only.
 
 ## Failure handling

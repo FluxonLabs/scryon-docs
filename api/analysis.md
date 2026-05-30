@@ -77,7 +77,15 @@ Returns the structured business analysis for a completed call.
       "ownerRole": "USER",
       "dueDate": "2026-05-23",
       "priority": "high",
-      "sourceSegmentIds": ["seg_0021"]
+      "sourceSegmentIds": ["seg_0021"],
+      "intent": "meeting",
+      "intentMetadata": {
+        "providerHint": "zoom",
+        "attendees": [{"name": "Alex", "email": "alex@example.com"}],
+        "proposedAt": "2026-05-23T11:00:00",
+        "durationMinutes": 30,
+        "title": "Q3 roadmap demo"
+      }
     }
   ],
   "followUps": [],
@@ -208,6 +216,48 @@ The **register** of the conversation — *how* it was said. Distinct from sentim
 | `byParty.contactTone` | `PartyTone` | Tone read for the other party. They commonly differ. |
 
 `PartyTone`: `{ overall, descriptors, notes }`.
+
+#### `ActionItem`
+
+A task extracted from the call. Also persisted to Postgres for editable state — see [Action items](action-items.md).
+
+| Field | Type | Notes |
+|---|---|---|
+| `title` | string | Short action title. |
+| `description` | string | Longer context. |
+| `ownerSpeaker` | string | Legacy alias for `ownerSpeakerLabel`. |
+| `ownerSpeakerId` | string | Stable `spk_N` from the normalised transcript. |
+| `ownerSpeakerLabel` | string | Display label at extraction time. |
+| `ownerDisplayName` | string | Refined name when known. |
+| `ownerRole` | string | `USER \| CONTACT \| UNKNOWN` |
+| `dueDate` | string | `YYYY-MM-DD` or null. |
+| `priority` | string | `low \| medium \| high` |
+| `sourceSegmentIds` | string[] | Segment ids cited as evidence. |
+| `intent` | string | Provider-neutral classification: `meeting \| email \| call \| message \| reminder \| task \| none` |
+| `intentMetadata` | `ActionIntentMetadata` | Typed payload for deep-link construction. See [Action items · Intent classification](action-items.md#intent-classification). |
+
+#### `ActionIntentMetadata`
+
+Optional metadata the LLM extracts to help a client launch the right external app. Every field is nullable — the model is instructed never to invent values.
+
+| Field | Type | Notes |
+|---|---|---|
+| `providerHint` | string | When explicit: `meet \| zoom \| teams \| phone` (meetings) or `whatsapp \| sms \| telegram` (messages). A hint, not a decision. |
+| `attendees` | `{name, email?}[]` | Meeting attendees. Email must appear in the transcript. |
+| `proposedAt` | string | ISO-8601 datetime for a meeting. |
+| `durationMinutes` | int | Meeting length when mentioned. |
+| `title` | string | Event / reminder title override. |
+| `location` | string | Physical location when explicit. |
+| `toEmail` | string | Email recipient — must appear in the transcript. |
+| `toName` | string | Recipient display name. |
+| `subject` | string | Suggested email subject (composed draft). |
+| `bodyPreview` | string | 1–2 sentence draft body (composed). |
+| `phoneNumber` | string | Only when a different number than the current call was named. |
+| `contactName` | string | Who to call / message. |
+| `channel` | string | `whatsapp \| sms \| telegram` when explicit. |
+| `handle` | string | Chat handle when mentioned. |
+| `remindAt` | string | ISO-8601 datetime for a reminder. |
+| `notes` | string | Short notes for task / reminder intents. |
 
 ### Legacy aliases
 
