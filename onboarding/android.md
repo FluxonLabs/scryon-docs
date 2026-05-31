@@ -89,51 +89,25 @@ The single most useful thing you can do on day 2 is **trace one Transcribe tap t
 
 The flow you are following:
 
-```
-User taps Transcribe in CallsTabScreen
-   │
-   ▼
-MainViewModel.transcribe(recording)
-   │
-   ▼
-CallUploadEnqueuer.enqueue(uri, mediaId, …)
-   │  writes UploadQueueStore (synthetic "Uploading" row)
-   │  enqueues OneTimeWorkRequest with ExistingWorkPolicy.KEEP
-   ▼
-WorkManager schedules CallUploadWorker
-   │
-   ▼
-CallUploadWorker.doWork (foreground after ~4s grace or on background)
-   │
-   ├─ CallLogMatcher (if READ_CALL_LOG granted)  → UploadMetadata JSON
-   │
-   ├─ IdempotencyKeyStore.getOrCreate(target)    → UUID v4 (24 h TTL)
-   │
-   ├─ POST /api/calls/analyze
-   │     multipart audio + optional metadata JSON
-   │     headers: X-API-Key, Authorization: Bearer, Idempotency-Key
-   │
-   ▼
-202 { callId, status: QUEUED }
-   │
-   ├─ IdempotencyKeyStore.clear(target)
-   ├─ InFlightUploadStore.record(callId, mediaId)
-   └─ UploadQueueStore.dequeue(mediaId, uri)     (synthetic row replaced)
-   │
-   ▼
-MainShellViewModel polls GET /api/calls/status?ids=…
-   │  honours server nextPollMs (clamped 1–60 s)
-   │  exponential backoff on errors
-   ▼
-COMPLETED → row goes green → tap opens CallDetailScreen
-   │
-   ▼
-CallDetailViewModel.loadDetail(callId)
-   │  GET /api/calls/{id}
-   │  if cache hit: read transcript + analysis from disk
-   │  else: GET /transcript and GET /analysis, write to CallContentCache
-   ▼
-Compose renders transcript bubbles + analysis sections
+```mermaid
+flowchart TB
+    Tap([User taps Transcribe in CallsTabScreen])
+    VM[MainViewModel.transcribe]
+    Enq["CallUploadEnqueuer.enqueue<br/><i>writes UploadQueueStore (synthetic "Uploading" row)<br/>enqueues OneTimeWorkRequest · ExistingWorkPolicy.KEEP</i>"]
+    WM[WorkManager schedules CallUploadWorker]
+    Work["**CallUploadWorker.doWork**<br/><i>foreground after ~4s grace or on background</i>"]
+    Match["**CallLogMatcher**<br/><i>if READ_CALL_LOG granted</i><br/>→ UploadMetadata JSON"]
+    Key["**IdempotencyKeyStore.getOrCreate**<br/>→ UUID v4 (24 h TTL)"]
+    Post["**POST /api/calls/analyze**<br/>multipart audio + metadata JSON<br/>X-API-Key · Bearer · Idempotency-Key"]
+    Ack[202 · callId, status: QUEUED]
+    PostAck["IdempotencyKeyStore.clear(target)<br/>InFlightUploadStore.record(callId, mediaId)<br/>UploadQueueStore.dequeue (synthetic row replaced)"]
+    Poll["**MainShellViewModel** polls<br/>GET /api/calls/status?ids=…<br/><i>honours server nextPollMs (1–60 s),<br/>exponential backoff on errors</i>"]
+    Done[COMPLETED · row goes green]
+    Detail["**CallDetailViewModel.loadDetail**<br/>GET /api/calls/{id}<br/>cache hit → read from disk<br/>cache miss → GET /transcript + /analysis,<br/>write to CallContentCache"]
+    Render[Compose renders transcript bubbles + analysis sections]
+
+    Tap --> VM --> Enq --> WM --> Work
+    Work --> Match --> Key --> Post --> Ack --> PostAck --> Poll --> Done --> Detail --> Render
 ```
 
 Every arrow here has a doc page. The most important ones to internalise:

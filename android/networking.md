@@ -4,23 +4,14 @@ The app talks to the backend over HTTPS using **Retrofit 2 + OkHttp 4 + Moshi**.
 
 ## Interceptor chain
 
-```
-Request
-   │
-   ▼
-ApiKeyInterceptor          adds  X-API-Key: <SCRYON_API_KEY>
-   │
-   ▼
-FirebaseAuthInterceptor    adds  Authorization: Bearer <ID token>
-   │                       (skipped only when no user is signed in;
-   │                       /api/health is always allowed through)
-   ▼
-HttpLoggingInterceptor     BODY in debug · NONE in release · headers redacted
-   │
-   ▼
-OkHttp dispatcher          connect 20s · write 180s · read 5min
-                           authenticator: FirebaseAuthAuthenticator
-                           (force-refresh + retry once on HTTP 401)
+```mermaid
+flowchart TB
+    Req([Request])
+    A["**ApiKeyInterceptor**<br/>adds X-API-Key: $SCRYON_API_KEY"]
+    B["**FirebaseAuthInterceptor**<br/>adds Authorization: Bearer &lt;ID token&gt;<br/><i>skipped when no user is signed in;<br/>/api/health always allowed through</i>"]
+    C["**HttpLoggingInterceptor**<br/>BODY in debug · NONE in release · headers redacted"]
+    D["**OkHttp dispatcher**<br/>connect 20s · write 180s · read 5min<br/>authenticator: FirebaseAuthAuthenticator<br/><i>(force-refresh + retry once on HTTP 401)</i>"]
+    Req --> A --> B --> C --> D
 ```
 
 ## Token caching

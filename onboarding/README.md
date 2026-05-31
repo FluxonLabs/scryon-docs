@@ -39,45 +39,54 @@ The full text lives in the [main README](../README.md#core-principles). If you e
 
 Here is the whole product, drawn at the napkin level. Read it once and you will be able to follow any conversation.
 
-```
-                   ┌──────────────────────────────────────────────────┐
-                   │   Android client (scryon-android)                │
-                   │                                                  │
-   user taps       │   1. MediaStore scan finds call-style recordings │
-   "Transcribe" ──▶│   2. CallUploadEnqueuer + WorkManager (durable)  │
-                   │   3. POST /api/calls/analyze (multipart + meta)  │
-                   │   4. Poll GET /api/calls/status                  │
-                   │   5. Render transcript + analysis                │
-                   └──────────────────┬───────────────────────────────┘
-                                      │ HTTPS · Bearer (Firebase) · X-API-Key · Idempotency-Key
-                                      ▼
-                   ┌──────────────────────────────────────────────────┐
-                   │   Backend (scryon-backend) — Spring Boot, Java 21│
-                   │                                                  │
-                   │   POST /analyze ─▶  CallController                │
-                   │                  ─▶ CallIntakeService             │
-                   │                       persists row (QUEUED)      │
-                   │                       enqueues AnalysisPipeline  │
-                   │                                                  │
-                   │   AnalysisPipeline (async, idempotent):          │
-                   │     1. AudioPreprocessor   (ffmpeg)              │
-                   │     2. DiarizationClient   (pyannoteAI)          │
-                   │     3. TranscriptionClient (Lemonfox / Whisper)  │
-                   │     4. TranscriptAligner   + Normaliser (v3)     │
-                   │     5. SpeakerNameResolutionService              │
-                   │     6. AnalysisLlmService  (LLM)                 │
-                   │     7. ActionItemExtractor                       │
-                   │                                                  │
-                   │   GET /transcript, /analysis, /actions ─▶ JSON    │
-                   └──────────────────┬───────────────────────────────┘
-                                      │
-                                      ▼
-                   ┌──────────────────────────────────────────────────┐
-                   │   Storage                                        │
-                   │   • Postgres (call_records, action_items, …)     │
-                   │   • Object store (S3-compatible) — derived JSON  │
-                   │   • External: pyannoteAI, Lemonfox, OpenAI       │
-                   └──────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    User([User taps Transcribe]):::user
+
+    subgraph Android["Android client (scryon-android)"]
+        direction TB
+        A1["1. MediaStore scan<br/>finds call-style recordings"]
+        A2["2. CallUploadEnqueuer<br/>+ WorkManager (durable)"]
+        A3["3. POST /api/calls/analyze<br/>(multipart + metadata)"]
+        A4[4. Poll GET /api/calls/status]
+        A5[5. Render transcript + analysis]
+        A1 --> A2 --> A3 --> A4 --> A5
+    end
+
+    subgraph Backend["Backend (scryon-backend) · Spring Boot, Java 21"]
+        direction TB
+        Intake["POST /analyze → CallController<br/>→ CallIntakeService<br/>persists row (QUEUED), enqueues pipeline"]
+
+        subgraph Pipeline["AnalysisPipeline (async, idempotent)"]
+            direction TB
+            P1["1. AudioPreprocessor<br/>(ffmpeg)"]
+            P2["2. DiarizationClient<br/>(pyannoteAI)"]
+            P3["3. TranscriptionClient<br/>(Lemonfox / Whisper)"]
+            P4["4. TranscriptAligner<br/>+ Normaliser (v3)"]
+            P5[5. SpeakerNameResolutionService]
+            P6["6. AnalysisLlmService<br/>(LLM)"]
+            P7[7. ActionItemExtractor]
+            P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7
+        end
+
+        Reads["GET /transcript, /analysis, /actions<br/>→ JSON"]
+        Intake --> Pipeline
+        Pipeline -.-> Reads
+    end
+
+    subgraph Storage["Storage"]
+        direction TB
+        PG[("Postgres<br/>call_records · action_items · …")]
+        S3[("Object store (S3-compat.)<br/>derived JSON artifacts")]
+        Ext[/"External providers<br/>pyannoteAI · Lemonfox · OpenAI"/]
+    end
+
+    User --> A1
+    A3 -->|"HTTPS · Bearer · X-API-Key · Idempotency-Key"| Intake
+    A4 -->|HTTPS| Reads
+    Backend --> Storage
+
+    classDef user fill:#fef3c7,stroke:#a16207,color:#3f2d05
 ```
 
 Bookmark this picture. It tells you where any given concern lives.

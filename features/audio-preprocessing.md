@@ -6,20 +6,17 @@ A short ffmpeg pipeline runs before audio is sent to diarization and transcripti
 
 ## What the pipeline does
 
-```
-input audio
-    │
-    ▼
-┌─────────────────────────┐
-│ 1. Downmix to mono       │
-│ 2. Resample to 16 kHz    │
-│ 3. High-pass @ 80 Hz     │   ── removes HVAC rumble + bass hum
-│ 4. FFT denoise (afftdn)  │   ── strips stationary background noise
-│ 5. Loudness normalise    │   ── EBU R128 (loudnorm)
-└─────────────────────────┘
-    │
-    ▼
-wav, 16 kHz, mono, ~-16 LUFS
+```mermaid
+flowchart TB
+    In([input audio])
+    S1[1 · Downmix to mono]
+    S2[2 · Resample to 16 kHz]
+    S3["3 · High-pass @ 80 Hz<br/><i>removes HVAC rumble + bass hum</i>"]
+    S4["4 · FFT denoise (afftdn)<br/><i>strips stationary background noise</i>"]
+    S5["5 · Loudness normalise<br/><i>EBU R128 (loudnorm)</i>"]
+    Out([wav · 16 kHz · mono · ~-16 LUFS])
+
+    In --> S1 --> S2 --> S3 --> S4 --> S5 --> Out
 ```
 
 Resulting audio is the input to the rest of the pipeline.

@@ -4,38 +4,31 @@ Scryon is a single Spring Boot service that wraps three external providers — p
 
 ## Component diagram
 
-```
-                ┌──────────────────────────────────────────────────────┐
-                │                Scryon backend (JVM)                  │
-                │                                                      │
-   HTTP   ─────▶│  Web layer:  Controllers • RequestLoggingFilter      │
-                │              Firebase JWT • API-key guard            │
-                │      │                                               │
-                │      ▼                                               │
-                │  Service layer:  CallProcessingService               │
-                │                  AudioPreprocessingService           │
-                │                  DiarizationService                  │
-                │                  TranscriptionClient (Lemonfox)      │
-                │                  TranscriptAlignmentService          │
-                │                  TranscriptNormalizationService      │
-                │                  VoiceMatchService (opt-in)          │
-                │                  SpeakerNameResolutionService        │
-                │                  AnalysisClient (OpenAI)             │
-                │                  ActionItemService                   │
-                │      │                                               │
-                │      ▼                                               │
-                │  Data layer:  Postgres (JPA)  +  Object storage (S3) │
-                │                                                      │
-                │  Cross-cutting:  ScryonMetrics  •  Sentry            │
-                │                  ProcessingEventLogger               │
-                │                  PipelineObservations (OpenTelemetry)│
-                └──────────────────────────────────────────────────────┘
-                            │              │
-                            ▼              ▼
-                   ┌──────────────┐  ┌──────────────┐
-                   │  Postgres    │  │  S3-compat.  │
-                   │ (state, FK)  │  │  (artifacts) │
-                   └──────────────┘  └──────────────┘
+```mermaid
+flowchart TB
+    Client([Client]):::ext
+
+    subgraph Backend["Scryon backend (JVM, Spring Boot)"]
+        direction TB
+        Web["**Web layer**<br/>Controllers · RequestLoggingFilter<br/>Firebase JWT · API-key guard"]
+        Services["**Service layer**<br/>CallProcessingService<br/>AudioPreprocessingService · DiarizationService<br/>TranscriptionClient (Lemonfox)<br/>TranscriptAlignmentService · TranscriptNormalizationService<br/>VoiceMatchService (opt-in) · SpeakerNameResolutionService<br/>AnalysisClient (OpenAI) · ActionItemService"]
+        Data["**Data layer**<br/>JPA repositories · ObjectStorageService"]
+        Cross["**Cross-cutting**<br/>ScryonMetrics · Sentry<br/>ProcessingEventLogger · PipelineObservations (OTel)"]
+
+        Web --> Services
+        Services --> Data
+        Services -. instruments .-> Cross
+    end
+
+    PG[("Postgres<br/>state · FK")]:::store
+    S3[("S3-compatible<br/>artifacts")]:::store
+
+    Client -->|HTTP| Web
+    Data --> PG
+    Data --> S3
+
+    classDef ext fill:#e8eef7,stroke:#5b7bb3,color:#1f3a6b
+    classDef store fill:#fff4e0,stroke:#b88c2a,color:#5a3f00
 ```
 
 External providers (HTTP, configurable):

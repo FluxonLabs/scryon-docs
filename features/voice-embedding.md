@@ -16,40 +16,34 @@ Voice matching adds a strong, language-independent signal: *this voice = the pho
 
 ## End-to-end flow
 
-```
-                Onboarding (one-time)
-┌─────────────┐  POST voice-profile  ┌──────────┐
-│  Android    │ ───────────────────▶ │ Scryon   │
-│   client    │   {audio sample}     │ backend  │
-└─────────────┘                      └────┬─────┘
-                                          │ provider.createProfile
-                                          ▼
-                                  ┌────────────────┐
-                                  │  pyannoteAI    │ ── embedding ──┐
-                                  └────────────────┘                 │
-                                                                     │
-                                  ┌─────────────────────────────┐    │
-                                  │  user_voice_profiles row    │ ◀──┘
-                                  └─────────────────────────────┘
+### Onboarding (one-time)
 
-                 At every call (automatic)
-                                  ┌─────────────────────────────────────┐
-                                  │ TranscriptNormalizationService      │
-                                  │  → VoiceMatchService.match(...)     │
-                                  └─────────────────────────────────────┘
-                                              │
-                                              ▼
-                                  ┌────────────────┐
-                                  │  pyannoteAI    │  /v1/identify
-                                  │     /v1/        │  audio + embedding
-                                  └────────────────┘
-                                              │
-                                              ▼
-                                  per-segment identifications
-                                              │
-                                              ▼
-                                  bucket by sourceSpeakerId
-                                  → 0 / 1 / many speakers cross threshold
+```mermaid
+sequenceDiagram
+    actor U as Android client
+    participant B as Scryon backend
+    participant P as pyannoteAI
+    participant DB as user_voice_profiles
+
+    U->>B: POST /api/users/me/voice-profile<br/>{ audio sample }
+    B->>P: provider.createProfile(audio)
+    P-->>B: opaque embedding blob
+    B->>DB: INSERT row (embedding_json)
+    B-->>U: 201 Created
+    Note over B: Raw audio is discarded after embedding returns.
+```
+
+### At every call (automatic)
+
+```mermaid
+flowchart TB
+    Norm["TranscriptNormalizationService"] --> Match["VoiceMatchService.match(...)"]
+    Match -->|"POST /v1/identify<br/>audio + embedding"| Provider["pyannoteAI"]
+    Provider -->|per-segment identifications| Bucket["Bucket by sourceSpeakerId"]
+    Bucket --> Cross{"speakers above<br/>threshold?"}
+    Cross -->|0| NoMatch[NO_MATCH<br/>text resolver runs unchanged]
+    Cross -->|1| Matched[MATCHED<br/>label that speaker = USER]
+    Cross -->|"&gt;1"| Amb[AMBIGUOUS<br/>no label assigned]
 ```
 
 ## Match thresholds

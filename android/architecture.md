@@ -4,44 +4,38 @@ A single-module app following a Clean-ish layering with strict boundaries.
 
 ## Layers
 
-```
-┌────────────────────────────────────────────────────────────────────┐
-│                              UI (Compose)                          │
-│  AuthGate · LoginScreen · EmailVerificationScreen                  │
-│  ScryonRoot · CallsTabScreen · TranscribedTabScreen                │
-│  SettingsTabScreen · CallDetailScreen                              │
-└─────────────────────────────────┬──────────────────────────────────┘
-                                  │ collectAsStateWithLifecycle
-┌─────────────────────────────────▼──────────────────────────────────┐
-│                          ViewModels (Hilt)                         │
-│  AuthGateViewModel · AuthViewModel · EmailVerificationViewModel    │
-│  MainViewModel · MainShellViewModel · CallDetailViewModel          │
-│  UserSettingsViewModel                                             │
-└─────────────────────────────────┬──────────────────────────────────┘
-                                  │ suspend / StateFlow
-┌─────────────────────────────────▼──────────────────────────────────┐
-│                            Repositories                            │
-│  AuthRepository (Firebase)  · FirebaseIdTokenProvider              │
-│  CallRepository  ◀──── impl: ScryonRepository                      │
-│  UserRepository  ◀──── impl: ScryonUserRepository                  │
-└────┬────────────────┬─────────────────────┬───────────┬────────────┘
-     │                │                     │           │
-     ▼                ▼                     ▼           ▼
-┌─────────────┐ ┌─────────────────┐ ┌──────────────┐ ┌──────────────┐
-│  Local      │ │ Remote          │ │ Background   │ │ Device       │
-│  stores     │ │ (Retrofit)      │ │ (WorkManager)│ │ sources      │
-│             │ │                 │ │              │ │              │
-│ CallRecord- │ │ ScryonApi       │ │ CallUpload-  │ │ MediaStore   │
-│  ingPrefs   │ │ + ApiKey-       │ │  Worker      │ │  via Call-   │
-│ InFlight-   │ │   Interceptor   │ │  (foreground │ │  Recording-  │
-│  UploadStore│ │ + FirebaseAuth- │ │   service)   │ │  Scanner     │
-│ Idempotency-│ │   Interceptor   │ │              │ │ Content-     │
-│  KeyStore   │ │ + FirebaseAuth- │ │ CallUpload-  │ │  Observer    │
-│ UploadQueue-│ │   Authenticator │ │  Enqueuer    │ │              │
-│  Store      │ │   (401 retry)   │ │              │ │              │
-│ Dismissed-  │ │ + Logging       │ │              │ │              │
-│  CallStore  │ │                 │ │              │ │              │
-└─────────────┘ └─────────────────┘ └──────────────┘ └──────────────┘
+```mermaid
+flowchart TB
+    subgraph UI["UI (Compose)"]
+        direction LR
+        UIA["AuthGate · LoginScreen · EmailVerificationScreen"]
+        UIB["ScryonRoot · CallsTabScreen · TranscribedTabScreen · SettingsTabScreen · CallDetailScreen"]
+    end
+
+    subgraph VM["ViewModels (Hilt)"]
+        direction LR
+        VMA["AuthGateVM · AuthVM · EmailVerificationVM"]
+        VMB["MainVM · MainShellVM · CallDetailVM · UserSettingsVM"]
+    end
+
+    subgraph Repo["Repositories"]
+        direction LR
+        R1["AuthRepository (Firebase)<br/>+ FirebaseIdTokenProvider"]
+        R2["CallRepository<br/><i>impl: ScryonRepository</i>"]
+        R3["UserRepository<br/><i>impl: ScryonUserRepository</i>"]
+    end
+
+    Local["**Local stores**<br/>CallRecordingPrefs<br/>InFlightUploadStore<br/>IdempotencyKeyStore<br/>UploadQueueStore<br/>DismissedCallStore<br/>CallContentCache"]
+    Remote["**Remote (Retrofit)**<br/>ScryonApi<br/>+ ApiKeyInterceptor<br/>+ FirebaseAuthInterceptor<br/>+ FirebaseAuthAuthenticator (401 retry)<br/>+ HttpLoggingInterceptor"]
+    Background["**Background (WorkManager)**<br/>CallUploadWorker<br/>(foreground service)<br/>CallUploadEnqueuer"]
+    Device["**Device sources**<br/>MediaStore via<br/>CallRecordingScanner<br/>+ ContentObserver"]
+
+    UI -->|collectAsStateWithLifecycle| VM
+    VM -->|suspend / StateFlow| Repo
+    Repo --> Local
+    Repo --> Remote
+    Repo --> Background
+    Repo --> Device
 ```
 
 ## Hard rules
@@ -115,13 +109,13 @@ app/src/main/java/com/scryon/
 
 The same scanner powers the background **New-recording** notification flow — see [Notifications](notifications.md).
 
-```
-MediaStore (Audio) ─▶ CallRecordingScanner ─▶ filtered list
-                                                │
-              ┌──── isTranscribed?  ────────────┤
-              │                                 │
-              ▼                                 ▼
-        Transcribed set                  Calls tab pending list
+```mermaid
+flowchart LR
+    MS[("MediaStore (Audio)")] --> Scan[CallRecordingScanner]
+    Scan --> Filtered[Filtered list]
+    Filtered --> Check{isTranscribed?}
+    Check -->|yes| T[Transcribed set]
+    Check -->|no| C[Calls tab · pending list]
 ```
 
 ## What's next

@@ -4,11 +4,17 @@ The async pipeline transforms an uploaded audio file into a transcribed, diarize
 
 ## Stages
 
-```
-QUEUED ───▶ TRANSCRIBING ───▶ ANALYZING ───▶ COMPLETED
-   │              │                │
-   │              ▼                ▼
-   └─────────▶ FAILED  ◀────── FAILED
+```mermaid
+stateDiagram-v2
+    [*] --> QUEUED : POST /api/calls/analyze
+    QUEUED --> TRANSCRIBING : worker picks up
+    TRANSCRIBING --> ANALYZING : transcript persisted
+    ANALYZING --> COMPLETED : analysis persisted
+    QUEUED --> FAILED : intake error
+    TRANSCRIBING --> FAILED : provider / pipeline error
+    ANALYZING --> FAILED : provider error
+    COMPLETED --> [*]
+    FAILED --> [*]
 ```
 
 Within `TRANSCRIBING` the worker executes these sub-stages in order:

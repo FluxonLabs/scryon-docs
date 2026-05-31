@@ -116,38 +116,25 @@ The single most useful thing you can do on day 2 is **follow one real call throu
 
 The pipeline:
 
-```
-POST /api/calls/analyze
-   │
-   ▼
-CallController.analyze
-   │
-   ▼
-CallIntakeService.intake
-   │ persists call_records row (QUEUED)
-   │ writes the audio object to S3
-   │ schedules AnalysisPipeline
-   ▼
-AnalysisPipeline.process(callId)
-   │
-   ├─▶ AudioPreprocessor          → preprocessed.wav  (mono, 16 kHz, loudnorm, denoise)
-   │
-   ├─▶ DiarizationClient          → speaker_0/1, segments[t0,t1]
-   │       (pyannoteAI; numSpeakers hint = 2)
-   │
-   ├─▶ TranscriptionClient        → words[w, startMs, endMs]
-   │       (Lemonfox / Whisper)
-   │
-   ├─▶ TranscriptAligner          → segments[{speakerId, text, t0, t1}]
-   │       + TranscriptNormaliser → v3 schema {segments[], speakers[]}
-   │
-   ├─▶ SpeakerNameResolutionService
-   │       layered evidence: voice match → greeting → mention asymmetry
-   │       → by-elimination → direction tiebreaker → positional fallback → phone fallback
-   │
-   ├─▶ AnalysisLlmService         → summary, keyPoints, sentiment, actionItems[]
-   │
-   └─▶ ActionItemExtractor        → stores rows in action_items
+```mermaid
+flowchart TB
+    Req([POST /api/calls/analyze])
+    Ctrl[CallController.analyze]
+    Intake["CallIntakeService.intake<br/><i>persists call_records row (QUEUED)<br/>writes audio object to S3<br/>schedules AnalysisPipeline</i>"]
+
+    subgraph Pipeline["AnalysisPipeline.process(callId)"]
+        direction TB
+        S1["**AudioPreprocessor**<br/>→ preprocessed.wav<br/><i>mono · 16 kHz · loudnorm · denoise</i>"]
+        S2["**DiarizationClient**<br/>→ speaker_0/1 · segments[t0,t1]<br/><i>pyannoteAI · numSpeakers hint = 2</i>"]
+        S3["**TranscriptionClient**<br/>→ words[w, startMs, endMs]<br/><i>Lemonfox / Whisper</i>"]
+        S4["**TranscriptAligner + Normaliser**<br/>→ v3 schema { segments[], speakers[] }"]
+        S5["**SpeakerNameResolutionService**<br/><i>layered evidence: voice match → greeting →<br/>mention asymmetry → by-elimination →<br/>direction tiebreaker → positional / phone fallback</i>"]
+        S6["**AnalysisLlmService**<br/>→ summary · keyPoints · sentiment · actionItems[]"]
+        S7["**ActionItemExtractor**<br/>→ rows in action_items"]
+        S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7
+    end
+
+    Req --> Ctrl --> Intake --> Pipeline
 ```
 
 Each stage:

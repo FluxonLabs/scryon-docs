@@ -4,24 +4,54 @@ Scryon's relational store is Postgres. The schema is owned by Flyway migrations 
 
 ## Entity-relationship diagram
 
-```
-┌────────────┐      1   ┌──────────────────────┐    1   ┌──────────────────┐
-│   users    │──────────│     call_records     │────────│   action_items    │
-└──────┬─────┘     N    └──────────┬───────────┘   N    └──────────────────┘
-       │                           │ 1
-       │ 1                         │ N
-       │                  ┌────────▼───────────┐
-       │ N                │   call_artifacts   │
-       │                  └────────────────────┘
-       │
-       │ 1                ┌────────────────────┐
-       └──────────────────│ user_voice_profiles│
-                          └────────────────────┘
-                          (0..1 per user)
+```mermaid
+erDiagram
+    users ||--o{ call_records : owns
+    users ||--o| user_voice_profiles : "0..1 per user"
+    users ||--o{ call_processing_events : "scoped to"
+    call_records ||--o{ action_items : extracts
+    call_records ||--o{ call_artifacts : "1 per artifact type"
+    call_records ||--o{ call_processing_events : emits
 
-         ┌──────────────────────────────┐
-         │  call_processing_events       │  one row per pipeline event
-         └──────────────────────────────┘
+    users {
+        uuid id PK
+        text external_user_id UK "Firebase UID"
+        text email
+        text display_name
+    }
+    call_records {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text direction "INCOMING / OUTGOING / UNKNOWN"
+        text status "state machine"
+        timestamptz recorded_at
+    }
+    call_artifacts {
+        uuid id PK
+        uuid call_id FK
+        text artifact_type "TEMP_AUDIO / DIARIZATION_JSON / ..."
+        text storage_key
+    }
+    action_items {
+        uuid id PK
+        uuid call_record_id FK
+        text title
+        text status "OPEN / DONE / SNOOZED"
+        text owner_role
+    }
+    user_voice_profiles {
+        uuid id PK
+        uuid user_id FK,UK
+        text provider
+        jsonb embedding_json "opaque blob"
+    }
+    call_processing_events {
+        uuid id PK
+        uuid call_id
+        text stage
+        text status "STARTED / COMPLETED / FAILED / SKIPPED"
+    }
 ```
 
 ## Tables at a glance

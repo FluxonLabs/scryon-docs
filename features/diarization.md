@@ -6,19 +6,24 @@ Diarization is the process of figuring out **who spoke when** — a stream of `(
 
 ## How it works
 
-```
-┌───────────────────┐  presigned PUT  ┌──────────────────┐
-│  Scryon backend   │ ───────────────▶│  pyannote media  │
-│ (worker thread)   │ ◀───── jobId ── │     storage      │
-└────────┬──────────┘                 └──────────────────┘
-         │ POST /v1/diarize {url, numSpeakers}
-         ▼
-┌───────────────────┐  poll  ┌──────────────────┐
-│  pyannote API     │ ◀───── │  /v1/jobs/{id}    │
-└───────────────────┘        └──────────────────┘
-         │  COMPLETED
-         ▼
-   diarization turns
+```mermaid
+sequenceDiagram
+    participant Worker as Scryon backend<br/>(worker thread)
+    participant Media as pyannote media storage
+    participant API as pyannote API
+
+    Worker->>Media: presigned PUT (preprocessed audio)
+    Media-->>Worker: object URL
+    Worker->>API: POST /v1/diarize { url, numSpeakers: 2 }
+    API-->>Worker: { jobId }
+
+    loop until terminal
+        Worker->>API: GET /v1/jobs/{jobId}
+        API-->>Worker: status
+    end
+
+    API-->>Worker: COMPLETED · diarization turns
+    Note over Worker: Turns → TranscriptAlignmentService
 ```
 
 1. The preprocessed audio is uploaded to pyannote's media store via a presigned URL.

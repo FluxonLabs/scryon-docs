@@ -24,24 +24,26 @@ Everything runs as a single Spring Boot service backed by Postgres for state and
 
 ## End-to-end flow
 
-```
-┌────────────┐  POST /api/calls/analyze  ┌───────────────┐
-│  Android   │ ────────────────────────▶ │  Spring Boot  │
-│   client   │                           │   backend     │
-└────────────┘ ◀──────  callId  ──────── └──────┬────────┘
-                                                │
-                                  async         ▼
-                              ┌───────────────────────────────┐
-                              │ 1. Audio preprocessing (ffmpeg)│
-                              │ 2. Diarization  (pyannoteAI)   │
-                              │ 3. Transcription (Lemonfox)    │
-                              │ 4. Alignment     (words ⨯ turns)│
-                              │ 5. Normalization                │
-                              │ 6. Voice match   (opt-in)       │
-                              │ 7. Speaker resolution           │
-                              │ 8. LLM analysis  (OpenAI)       │
-                              │ 9. Action items extracted       │
-                              └───────────────────────────────┘
+```mermaid
+flowchart LR
+    A([Android client]) -->|POST /api/calls/analyze| B[Spring Boot backend]
+    B -. 202 + callId .-> A
+
+    subgraph Pipe["Async pipeline"]
+        direction TB
+        P1["1. Audio preprocessing<br/>(ffmpeg)"]
+        P2["2. Diarization<br/>(pyannoteAI)"]
+        P3["3. Transcription<br/>(Lemonfox)"]
+        P4["4. Alignment<br/>(words × turns)"]
+        P5[5. Normalization]
+        P6["6. Voice match<br/>(opt-in)"]
+        P7[7. Speaker resolution]
+        P8["8. LLM analysis<br/>(OpenAI)"]
+        P9[9. Action items extracted]
+        P1 --> P2 --> P3 --> P4 --> P5 --> P6 --> P7 --> P8 --> P9
+    end
+
+    B --> Pipe
 ```
 
 Each stage is documented under [Features](../features/diarization.md). The runtime orchestration lives in `CallProcessingService`.
