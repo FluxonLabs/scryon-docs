@@ -10,7 +10,7 @@ This page covers everything you need to clone, configure, and run the Android ap
 | JDK | 17 (Gradle uses JVM 11 target; JDK 17 runs Gradle fine) |
 | Android device or emulator | API 26+ |
 | Firebase project | with Email/Password, Google, and Phone sign-in enabled |
-| Backend access | `SCRYON_API_KEY` |
+| Backend access | At minimum a running local backend or `STAGING_API_KEY` from Railway |
 
 ## One-time setup
 
@@ -23,21 +23,57 @@ This page covers everything you need to clone, configure, and run the Android ap
 
 2. **Add `google-services.json`** to the `app/` folder. It's gitignored — never commit it.
 
-3. **Create `local.properties`** at the repo root and fill in the keys listed in [Configuration](configuration.md).
+3. **Create `local.properties`** at the repo root and fill in the environment keys — see [Configuration](configuration.md) for the full reference.
 
-4. **Open in Android Studio → Build → Rebuild Project.** This generates `BuildConfig` constants from your `local.properties` values.
+   Minimal setup to use the `devDebug` flavor against a local backend:
+   ```properties
+   sdk.dir=/Users/<you>/Library/Android/sdk
+   DEV_BASE_URL=http://192.168.1.xxx:8080/   # your Mac's Wi-Fi IP
+   DEV_API_KEY=dev-local-key
+   FIREBASE_WEB_CLIENT_ID=<id>.apps.googleusercontent.com
+   ```
 
-5. **Run on a device or emulator** (API 26+).
+   To use `stagingDebug` against the Railway staging service instead:
+   ```properties
+   STAGING_API_KEY=<key-from-railway>
+   FIREBASE_WEB_CLIENT_ID=<id>.apps.googleusercontent.com
+   ```
 
-> The app builds *without* Firebase: the `google-services` plugin is applied conditionally on the presence of `google-services.json`. With no Firebase, the `AuthGate` renders the LoginScreen with a "Firebase not configured" hint, and the backend will reject calls that require a Bearer token.
+4. **Select your build variant** in Android Studio: **Build → Select Build Variant** and pick `devDebug` (local) or `stagingDebug` (Railway staging).
+
+5. **Build → Rebuild Project**, then run on a device or emulator (API 26+).
+
+> The app builds *without* Firebase: the `google-services` plugin is applied conditionally on the presence of `google-services.json`. With no Firebase, the `AuthGate` renders the LoginScreen with a "Firebase not configured" hint.
+
+## Build flavors
+
+The app has three flavors so you can target different environments without touching source code:
+
+| Flavor | App ID | Launcher label | Backend |
+|--------|--------|---------------|---------|
+| `dev` | `com.scryon.dev` | **Scryon Dev** | Local Mac |
+| `staging` | `com.scryon.staging` | **Scryon Staging** | Railway staging |
+| `prod` | `com.scryon` | **Scryon** | Railway prod |
+
+All three install as separate apps on the same device. **Never test against `prod`** — it points to real user data.
 
 ## Build & run from the command line
 
 ```bash
-./gradlew :app:assembleDebug           # debug APK → app/build/outputs/apk/debug/
-./gradlew :app:installDebug            # build + push to a connected device
-./gradlew :app:compileDebugKotlin      # fast type-check, no resources
-./gradlew :app:testDebugUnitTest       # unit tests (scaffold only today)
+# --- dev (local backend) ---
+./gradlew :app:installDevDebug          # most common day-to-day command
+./gradlew :app:assembleDevDebug         # APK only
+
+# --- staging ---
+./gradlew :app:installStagingDebug
+./gradlew :app:assembleStagingRelease   # for tester distribution
+
+# --- prod (Play Store) ---
+./gradlew :app:bundleProdRelease        # AAB → upload to Play Console
+
+# --- other ---
+./gradlew :app:compileDevDebugKotlin    # fast type-check, no resources
+./gradlew :app:testDebugUnitTest        # unit tests (scaffold only today)
 ```
 
 Useful flags:
@@ -45,27 +81,31 @@ Useful flags:
 | Flag | Effect |
 |---|---|
 | `--info` / `--debug` | Gradle verbosity |
-| `-PSCRYON_API_KEY=…` | Override at invocation time (handy for CI) |
+| `-PDEV_API_KEY=…` | Override a key at invocation time (CI) |
 
-`HttpLoggingInterceptor` is at `Level.BODY` in debug, `Level.NONE` in release. Credentials are always redacted.
+`HttpLoggingInterceptor` is at `Level.BODY` in debug builds, `Level.NONE` in release. Credentials are always redacted.
 
 ## First-run smoke test
+
+Using `devDebug` with the local backend running:
 
 1. Open the app — the **AuthGate** redirects you to the LoginScreen.
 2. Sign in with email / Google / phone.
 3. The app calls `GET /api/users/me`, which lazily provisions a backend row on first call.
 4. The **Calls** tab discovers any call-style recordings already on the device. If empty, the app shows a friendly empty-state.
-5. Tap **Transcribe** on a recording. The first time, the app asks for `READ_CALL_LOG` (optional). The recording vanishes from Calls and a synthetic *Uploading* row appears in **Transcribed**.
-6. Wait for the row to progress to *Queued → Transcribing → Analyzing → Completed*.
+5. Tap **Transcribe** on a recording. The first time, the app asks for `READ_CALL_LOG` (optional). The recording disappears from Calls and a synthetic *Uploading* row appears in **Transcribed**.
+6. Wait for the row to progress: *Queued → Transcribing → Analyzing → Completed*.
 7. Tap the completed row to see the transcript and analysis.
 
-If anything in steps 2–7 fails, jump to [Troubleshooting](troubleshooting.md).
+If anything in steps 2–7 fails, see [Troubleshooting](troubleshooting.md).
 
-## Repos & related docs
+## Related docs
 
 | Resource | Link |
 |---|---|
 | Android repo | [github.com/FluxonLabs/scryon-android](https://github.com/FluxonLabs/scryon-android) |
 | Backend repo | [github.com/FluxonLabs/scryon-backend](https://github.com/FluxonLabs/scryon-backend) |
-| Backend deployment | [api.scryon.app](https://api.scryon.app) |
-| API reference (consumed by this app) | [API overview](../api/overview.md) |
+| Staging backend | [api-staging.scryon.app](https://api-staging.scryon.app) |
+| Prod backend | [api.scryon.app](https://api.scryon.app) |
+| API reference | [API overview](../api/overview.md) |
+| Configuration reference | [Configuration](configuration.md) |
