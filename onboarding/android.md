@@ -40,7 +40,7 @@ That is *the entire job*. The interesting design pressure is **reliability** —
 - **Android Studio Hedgehog or newer**.
 - **JDK 17** (Gradle uses JVM 11 target; JDK 17 runs Gradle fine).
 - A **Firebase project** with Email/Password, Google, and Phone sign-in enabled.
-- **Backend access** — at minimum a `SCRYON_API_KEY` for `https://api.scryon.app/`, or a locally-running backend.
+- **Backend access** — local Mac backend (docker compose) for day-to-day dev, or `STAGING_API_KEY` from Railway for testing without running the backend locally.
 - A device or emulator on **API 26+**.
 
 ### 2. Clone and configure
@@ -50,23 +50,41 @@ git clone git@github.com:FluxonLabs/scryon-android.git
 cd scryon-android
 ```
 
-Drop `google-services.json` into `app/` (gitignored). Create `local.properties` at the repo root and add:
+Drop `google-services.json` into `app/` (gitignored). Create `local.properties` at the repo root:
 
 ```properties
-SCRYON_BASE_URL=https://api.scryon.app/
-SCRYON_API_KEY=<your-key>
+sdk.dir=/Users/<you>/Library/Android/sdk
+
+# Local backend (get your Mac's IP: ipconfig getifaddr en0)
+DEV_BASE_URL=http://192.168.1.xxx:8080/
+DEV_API_KEY=dev-local-key
+
+# Railway staging (for testing without running the backend locally)
+STAGING_API_KEY=<ask the team>
+
+# Firebase
 FIREBASE_WEB_CLIENT_ID=<id>.apps.googleusercontent.com
 ```
 
-The full list lives in [Android · Configuration](../android/configuration.md).
+Full reference: [Android · Configuration](../android/configuration.md).
 
-### 3. Build and run
+### 3. Select a build variant and run
 
+The app has three flavors — pick the one that matches where your backend is running:
+
+| Variant | Backend | Use for |
+|---------|---------|---------|
+| `devDebug` | Local Mac | Day-to-day feature work |
+| `stagingDebug` | Railway staging | Integration testing |
+| `prodRelease` | Railway prod | Play Store only — never test here |
+
+In Android Studio: **Build → Select Build Variant → devDebug**, then click Run.
+
+From the command line:
 ```bash
-./gradlew :app:installDebug
+./gradlew :app:installDevDebug       # local backend
+./gradlew :app:installStagingDebug   # Railway staging
 ```
-
-Or open in Android Studio → **Build → Rebuild Project**, then Run on a device or emulator.
 
 > If you skip `google-services.json`, the app still builds — `AuthGate` renders LoginScreen with a "Firebase not configured" hint. Useful for UI-only changes.
 
@@ -246,7 +264,7 @@ Bookmark these:
 |---|---|---|
 | Build fails with "google-services.json not found" | Missing file in `app/` | Drop the file in `app/` (gitignored). The plugin is applied conditionally; you can also build without it. |
 | Google sign-in button does nothing | Missing `FIREBASE_WEB_CLIENT_ID` or SHA-1 not registered | Add the web client ID; register your debug SHA-1 in Firebase Console. |
-| `401 — Missing or invalid X-API-Key header` | `SCRYON_API_KEY` missing or wrong | Update `local.properties`, **rebuild** (BuildConfig is compile-time). |
+| `401 — Missing or invalid X-API-Key header` | API key for the selected flavor is missing or wrong | Check `DEV_API_KEY` / `STAGING_API_KEY` / `PROD_API_KEY` in `local.properties`, **rebuild** (BuildConfig is compile-time). |
 | Upload "completes" but row never updates | Pointing at one backend but Firebase project verifies tokens from another | Confirm the backend's Firebase project matches the one in `google-services.json`. |
 | App appears to "close" right after Transcribe | Old build before deferred-foreground fix | Reinstall current build; worker now waits ~4 s before promoting. |
 | Hilt-related compile errors after a refactor | Missing `@HiltViewModel` / `@HiltWorker` annotation, or a constructor change | Run `./gradlew :app:kspDebugKotlin --rerun-tasks` and re-read the error. |

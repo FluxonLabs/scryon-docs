@@ -8,8 +8,8 @@ A walk-through for setting up a complete local development environment.
 |---|---|---|
 | Java | 21+ | Service runtime. |
 | Maven | 3.9+ | Wrapper (`./mvnw`) is checked in but a system Maven works too. |
-| Docker | any recent | Postgres + (optional) localstack for S3. |
-| ffmpeg | 4.4+ | Audio preprocessing pipeline; the pipeline degrades gracefully if missing. |
+| Docker | any recent | Postgres via `docker compose`. |
+| ffmpeg | 4.4+ | Audio preprocessing; pipeline degrades gracefully if missing. |
 | `jq` | any | Comfortable JSON exploration from `curl`. |
 
 ## Clone
@@ -21,59 +21,73 @@ cd scryon-backend
 
 ## Profiles
 
-Scryon ships two Spring profiles:
+Scryon ships four Spring profiles for different scenarios:
 
-| Profile | When | DB | Storage | Notes |
-|---|---|---|---|---|
-| `local` | unit + integration tests | H2 (in-memory) | Local filesystem under `./var/storage` | No Flyway. Used by `@ActiveProfiles("local")`. |
-| *(default)* | local dev + production | Postgres | S3 / local | Flyway runs migrations. |
+| Profile | Activated by | DB | Storage | Transcription | Swagger | Log level |
+|---------|-------------|-----|---------|--------------|---------|-----------|
+| `local` | `@ActiveProfiles("local")` in tests | H2 in-memory | Local FS | Sync | on | DEBUG |
+| `dev` | `SPRING_PROFILES_ACTIVE=dev` | Postgres (docker-compose) | Local FS | Sync | on | DEBUG |
+| `staging` | Railway staging env var | Railway Postgres | S3/R2 | Async webhook | on | DEBUG |
+| `prod` | Railway prod env var | Railway Postgres | S3/R2 | Async webhook | off | INFO |
 
-Activate the default profile by simply running `./mvnw spring-boot:run`. Tests run with `local`.
+**For local device testing, use the `dev` profile.** It connects to Postgres via docker-compose and runs transcription synchronously — no public URL or HMAC secret needed.
 
-## Postgres
+The `local` profile (H2 + no Flyway) is for unit and integration tests only.
 
-The fastest path:
+## Running locally (dev profile)
+
+**Option 1 — Full docker-compose stack** (app + postgres together):
 
 ```bash
-docker run -d --name scryon-pg \
-  -e POSTGRES_USER=scryon \
-  -e POSTGRES_PASSWORD=scryon \
-  -e POSTGRES_DB=scryon \
-  -p 5432:5432 \
-  postgres:16
+cp .env.example .env   # fill in LEMONFOX_API_KEY and LLM_API_KEY at minimum
+docker compose up --build
 ```
 
-Then either keep the default JDBC URL or override with `DB_URL`. On first start Flyway will create all tables — see [Database migrations](../development/database-migrations.md).
+The compose file sets `SPRING_PROFILES_ACTIVE=dev` automatically.
 
-## Object storage
+**Option 2 — Postgres only, backend on host JVM** (faster iteration):
 
-For local dev set `OBJECT_STORAGE_PROVIDER=local` (the default). Artifacts will be written to `./var/storage` under the repo root, mirroring the production S3 key layout. See [Storage layout](../architecture/storage-layout.md).
+```bash
+# Start Postgres
+docker compose up postgres -d
 
-To exercise the real S3 client locally, run [localstack](https://docs.localstack.cloud/) and point the storage env vars at it.
+# Start backend with dev profile
+LEMONFOX_API_KEY=<key> LLM_API_KEY=<key> SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+```
+
+On first start Flyway runs all migrations and creates all tables. See [Database migrations](../development/database-migrations.md).
 
 ## Provider credentials
 
 | Provider | Required for | Env var |
 |---|---|---|
 | [Lemonfox](https://lemonfox.ai) | Transcription | `LEMONFOX_API_KEY` |
-| [pyannoteAI](https://pyannote.ai) | Diarization + voice profile | `PYANNOTE_API_KEY`, `PYANNOTE_ENABLED=true` |
-| [OpenAI](https://platform.openai.com) | Analysis (LLM) | `LLM_API_KEY` |
-| Firebase | Auth (production) | `FIREBASE_PROJECT_ID` and optionally service account |
+| [pyannoteAI](https://pyannote.ai) | Diarization + voice profiles | `PYANNOTE_API_KEY`, `PYANNOTE_ENABLED=true` |
+| [OpenAI](https://platform.openai.com) | LLM analysis | `LLM_API_KEY` |
+| Firebase | Auth in staging/prod | `FIREBASE_PROJECT_ID` (and optionally service-account credentials) |
 
-In local dev, Firebase is disabled by default — the `LocalDevUserFilter` attaches a fixed `Local Dev` user to every request so per-user scoping still works.
+In dev, Firebase is disabled by default (`FIREBASE_PROJECT_ID` is empty) — a fixed `Local Dev` user is attached to every request so per-user scoping still works.
 
-## Run
+## Object storage
+
+The `dev` profile defaults to local filesystem (`OBJECT_STORAGE_PROVIDER=local`). Artifacts are written to `./var/storage-dev` under the repo root, mirroring the S3 key layout. No credentials needed.
+
+To test against real S3/R2 locally, set `OBJECT_STORAGE_PROVIDER=s3` and fill in the bucket/endpoint/key variables from `.env.example`.
+
+## Connecting a physical Android device
+
+The `devDebug` Android flavor points to `DEV_BASE_URL` in `local.properties`. Set this to your Mac's LAN IP:
 
 ```bash
-./mvnw spring-boot:run
+ipconfig getifaddr en0    # e.g. 192.168.1.105
 ```
 
-Or build a JAR:
-
-```bash
-./mvnw clean package -DskipTests
-java -jar target/scryon-backend-*.jar
+Then in `Scryon/local.properties`:
+```properties
+DEV_BASE_URL=http://192.168.1.105:8080/
 ```
+
+The dev flavor's `network_security_config.xml` already permits cleartext HTTP, so no further Android config is needed.
 
 ## Run tests
 
@@ -81,14 +95,15 @@ java -jar target/scryon-backend-*.jar
 ./mvnw test
 ```
 
-Integration tests use the `local` profile and an in-memory H2 database — no Docker required.
+Integration tests use the `local` profile (H2 in-memory) — no Docker required.
 
 ## Useful endpoints during dev
 
 | URL | Purpose |
 |---|---|
-| `http://localhost:8080/swagger-ui.html` | Generated OpenAPI explorer |
+| `http://localhost:8080/swagger-ui.html` | OpenAPI explorer (dev + staging only) |
 | `http://localhost:8080/api/health` | Liveness check |
+| `http://localhost:8080/api/debug/calls/{id}/events` | Pipeline event log (dev + staging only) |
 | `http://localhost:8080/actuator/prometheus` | Prometheus scrape endpoint |
 | `http://localhost:8080/v3/api-docs` | Raw OpenAPI spec |
 
