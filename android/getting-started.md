@@ -57,6 +57,38 @@ The app has three flavors so you can target different environments without touch
 
 All three install as separate apps on the same device. **Never test against `prod`** — it points to real user data.
 
+## Local debugging (end-to-end in two commands)
+
+### 1. Start the backend
+
+```bash
+cd ../scryon-backend
+./dev.sh              # without pyannote (default)
+./dev.sh --pyannote   # with pyannote speaker separation
+```
+
+The script starts Postgres, prints your Mac's Wi-Fi IP, and runs the backend on `http://localhost:8080`. See [Backend local setup](../getting-started/local-setup.md) for `.env.local` key setup.
+
+### 2. Install the app
+
+```bash
+# from the scryon-android repo root
+./dev.sh           # builds + installs devDebug → "Scryon Dev"
+./dev.sh staging   # builds + installs stagingDebug → "Scryon Staging"
+```
+
+**Before first run** — set your Mac's IP in `local.properties`:
+```bash
+ipconfig getifaddr en0   # e.g. 192.168.1.105
+```
+```properties
+# local.properties
+DEV_BASE_URL=http://192.168.1.105:8080/
+```
+Only needs updating when your IP changes (new network, router reconnect).
+
+---
+
 ## Build & run from the command line
 
 ```bash
