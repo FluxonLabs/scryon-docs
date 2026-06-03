@@ -36,16 +36,34 @@ The `local` profile (H2 + no Flyway) is for unit and integration tests only.
 
 ## Running locally (dev profile)
 
-**Option 1 — Full docker-compose stack** (app + postgres together):
+### Quickest way — `dev.sh`
 
 ```bash
-cp .env.example .env   # fill in LEMONFOX_API_KEY and LLM_API_KEY at minimum
-docker compose up --build
+./dev.sh              # without pyannote (Lemonfox built-in diarization)
+./dev.sh --pyannote   # with pyannote (precise speaker separation, requires PYANNOTE_API_KEY)
 ```
 
-The compose file sets `SPRING_PROFILES_ACTIVE=dev` automatically.
+The script handles everything: starts Postgres if not running, prints the Mac's Wi-Fi IP for `local.properties`, and launches the backend with `SPRING_PROFILES_ACTIVE=dev`.
 
-**Option 2 — Postgres only, backend on host JVM** (faster iteration):
+**One-time setup — create `.env.local`** (gitignored, never commit):
+
+```bash
+# scryon-backend/.env.local
+export LEMONFOX_API_KEY=your-key
+export LLM_API_KEY=your-key
+# export PYANNOTE_API_KEY=your-key   # only needed for --pyannote
+```
+
+`dev.sh` sources this automatically every time.
+
+### Diarization modes
+
+| Command | Diarization | When to use |
+|---------|-------------|-------------|
+| `./dev.sh` | Lemonfox built-in | Quick testing, no extra key needed |
+| `./dev.sh --pyannote` | pyannote.ai | Testing speaker separation accuracy |
+
+### Manual run (if you prefer explicit commands)
 
 ```bash
 # Start Postgres
@@ -53,6 +71,10 @@ docker compose up postgres -d
 
 # Start backend with dev profile
 LEMONFOX_API_KEY=<key> LLM_API_KEY=<key> SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
+
+# With pyannote
+LEMONFOX_API_KEY=<key> LLM_API_KEY=<key> PYANNOTE_API_KEY=<key> PYANNOTE_ENABLED=true \
+  SPRING_PROFILES_ACTIVE=dev mvn spring-boot:run
 ```
 
 On first start Flyway runs all migrations and creates all tables. See [Database migrations](../development/database-migrations.md).
