@@ -57,18 +57,22 @@ A diagnosis-first guide to the most common failure modes. Each section lists the
 curl -s /api/calls/$CALL | jq '{contactName, phoneNumber, direction}'
 ```
 
-- If both `contactName` and the user's `displayName` are missing → no text resolution possible. Without voice embedding, the positional fallback only fires when at least one name is known.
+- If both `contactName` and the user's `displayName` are missing → no text resolution possible. Answering-pattern detection can still identify the CONTACT, but display names will remain generic until metadata is supplied.
 - If a name is set but resolution still produces UNKNOWN, inspect `speakerResolution.warnings` on the transcript.
+  - `speaker_roles_unresolved` — no transcript evidence (greeting, name mention, or answering phrase) resolved either speaker. Check that the call has audible speech in the first 20 seconds.
+  - `speaker_identity_ambiguous` — both speakers mentioned both names; the resolver refused to guess.
+  - `answering_pattern_used` — roles were assigned from an opening phrase ("hello?", "haan bolo", etc.) — `MEDIUM` confidence, review if incorrect.
 
 ### "Speaker 2's words attributed to Speaker 1"
 
-**Likely cause.** Diarization collapsed two speakers into one, OR word-level alignment snapped boundaries incorrectly.
+**Likely cause.** Diarization collapsed two speakers into one, OR the answering-pattern heuristic fired on the wrong speaker (e.g. the USER opened with "hello?").
 
 **Fix.**
 
-1. Inspect `speakers[].length` on the transcript — if there's only one real speaker, diarization collapsed.
-2. Check whether pyannote ran: `pipeline.diarizationProvider`. If it's `pyannote-fallback` or `lemonfox`, pyannote failed.
-3. Re-run with `PYANNOTE_ENABLED=true` and a clear `direction`.
+1. Inspect `speakers[]` on the transcript — if there's only one real speaker, diarization collapsed.
+2. Check `speakerResolution.warnings`:
+   - `answering_pattern_used` → the resolver identified the first speaker as CONTACT based on their opening phrase. If that's wrong, the call likely starts with the USER saying "hello?" (e.g. user picked up, not the contact). This is an edge case; supply `contactName` + ensure the contact's name appears in the transcript for stronger evidence.
+3. Check whether pyannote ran: `pipeline.diarizationProvider`. If it's `pyannote-fallback` or `lemonfox`, pyannote failed — set `PYANNOTE_ENABLED=true`.
 
 ## Voice embedding
 
