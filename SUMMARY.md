@@ -43,6 +43,7 @@
 * [Speaker resolution](features/speaker-resolution.md)
 * [Voice embedding](features/voice-embedding.md)
 * [LLM analysis](features/analysis.md)
+* [Search](features/search.md)
 
 ## Operations
 
