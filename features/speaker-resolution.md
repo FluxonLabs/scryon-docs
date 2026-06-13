@@ -13,13 +13,35 @@ The resolver applies rules in order of evidence strength. The first matching rul
 3. **Name mention asymmetry** — Speaker A mentions a name and Speaker B never does → A takes the opposite role at `MEDIUM`. If both speakers mention both names → ambiguous; nothing assigned.
 4. **By-elimination** — strict two-speaker call, one resolved at HIGH/MEDIUM → the other takes the opposite role at `MEDIUM`. Three-or-more-speaker calls do *not* auto-resolve untouched speakers.
 5. **Direction tiebreaker** — `INCOMING` / `OUTGOING` direction can promote a `MEDIUM` greeting match to `HIGH`. Direction alone never assigns a label.
-6. **Direction-aware positional fallback** — last resort for a clean two-speaker call with no other evidence. Maps appearance order + direction:
-   - `INCOMING` → first speaker = `USER`
-   - `OUTGOING` → first speaker = `CONTACT`
-   - `UNKNOWN` direction → first speaker = `USER`
+6. **Answering-pattern detection** — scans the first 4 segments (within 20 s) for short answering phrases. The speaker who opens with such a phrase answered the ringing phone — they are the `CONTACT`; the other becomes `USER` by elimination. `MEDIUM` confidence, tagged `ANSWERING_PATTERN`. Emits warning `answering_pattern_used`.
 
-   Always `LOW` confidence, tagged `POSITIONAL_FALLBACK`, emits warning `positional_fallback_used`.
-7. **Phone fallback** — `contactName` missing but `phoneNumber` present → CONTACT becomes `"Contact ending NNNN"` (last 4 digits only). The rest of the number never enters a transcript field.
+   Recognised answering phrases include: `hello`, `yes`, `speaking`, `go ahead`, `who is this`, `yeah`, `haan`, `bolo`, `hallo`, and common variants.
+
+7. **Unresolved — leave UNKNOWN** — if no rule above assigned either speaker, both remain `role=UNKNOWN`. No direction-based guess is made. A `speaker_roles_unresolved` quality warning is emitted so the client can surface an honest message rather than a confident but wrong label.
+8. **Phone fallback** — `contactName` missing but `phoneNumber` present → CONTACT becomes `"Contact ending NNNN"` (last 4 digits only). The rest of the number never enters a transcript field.
+
+## Why call direction is not used for role assignment
+
+An earlier version of the resolver used call direction (`INCOMING` / `OUTGOING`) as a last-resort heuristic: *"if OUTGOING, the callee answers first → first speaker = CONTACT."* This was removed because:
+
+- **Direction ≠ who spoke first in the audio.** The recording may start mid-conversation, Android's CallLog direction can lag, and the callee/caller might not be the first audible voice in every scenario.
+- **Silent failures are worse than honest uncertainty.** A wrong but confident label caused the summary to attribute statements to the wrong person — harder to spot than an explicit `UNKNOWN`.
+
+Direction is still used as a *tiebreaker* to promote an already-resolved `MEDIUM` greeting match to `HIGH` (rule 5), but it never initiates a role assignment on its own.
+
+## Segment sort determinism
+
+Speakers are assigned stable IDs (`spk_1`, `spk_2`, …) by chronological first-appearance order in the transcript. When two segments share identical timestamps (common at diarization turn boundaries due to floating-point rounding), the sort uses `(startSeconds, endSeconds, canonicalSpeakerId)` as a compound key. The string comparison of `SPEAKER_00` / `SPEAKER_01` ensures the assignment is fully deterministic across identical runs.
+
+## Quality warnings
+
+| Warning | Meaning |
+|---|---|
+| `answering_pattern_used` | Speaker role assigned via opening phrase detection |
+| `speaker_roles_unresolved` | No evidence resolved either speaker; both are `UNKNOWN` |
+| `positional_fallback_used` | *(Legacy — no longer emitted by the current resolver)* |
+| `speaker_identity_ambiguous` | Both speakers mentioned both names; resolver refused to guess |
+| `multi_party_call_not_auto_resolved` | More than 2 real speakers; untouched speakers stay `UNKNOWN` |
 
 ## Token-boundary matching
 
@@ -38,22 +60,18 @@ The resolver emits a privacy-safe `speakerResolution` telemetry block on the tra
   "strategyVersion": 2,
   "usedUserDisplayName": true,
   "usedContactName": true,
-  "usedDirection": true,
+  "usedDirection": false,
   "usedPhoneFallback": false,
   "voiceEmbeddingEnabled": false,
   "voiceProfileUsed": false,
   "voiceMatchStatus": "DISABLED",
   "totalSpeakerCount": 2,
   "resolvedSpeakerCount": 2,
-  "warnings": ["positional_fallback_used"]
+  "warnings": ["answering_pattern_used"]
 }
 ```
 
 No raw names, transcript fragments, or phone numbers appear in this block — only counts, booleans, and short warning codes.
-
-## "Speaker 1 = user" decision
-
-A natural user expectation is "speaker 1 is me, speaker 2 is the other side". This is only true for **incoming** calls. On outgoing calls the callee answers first ("Hello?"), so the first voice is the contact. The positional fallback is therefore direction-aware. When direction is unknown, we default to the user's intuition (speaker 1 = user).
 
 ## What this service is NOT
 
@@ -65,8 +83,10 @@ A natural user expectation is "speaker 1 is me, speaker 2 is the other side". Th
 
 | Service | File |
 |---|---|
-| `SpeakerNameResolutionService` | Resolver. |
+| `SpeakerNameResolutionService` | Resolver — all 8 rules in order. |
+| `AnsweringPatternResolver` | Detects answering phrases in opening segments. |
 | `NameMatcher` | Token-boundary-aware name matching. |
 | `CallContext` | Metadata bundle (display name, contact, phone, direction). |
-| `LabelSource` | Enum of evidence sources. |
+| `LabelSource` | Enum of evidence sources (includes `ANSWERING_PATTERN`). |
 | `SpeakerRole` / `SpeakerConfidence` | Role and confidence enums. |
+| `TranscriptNormalizationService` | Assigns `spk_1` / `spk_2` IDs by deterministic sort order. |

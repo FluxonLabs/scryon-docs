@@ -68,9 +68,37 @@ FIREBASE_WEB_CLIENT_ID=<id>.apps.googleusercontent.com
 
 Full reference: [Android · Configuration](../android/configuration.md).
 
-### 3. Select a build variant and run
+### 3. Start the backend and install the app
 
-The app has three flavors — pick the one that matches where your backend is running:
+**Both repos ship a `dev.sh` script for one-command startup.**
+
+**Terminal 1 — backend:**
+```bash
+cd ../scryon-backend
+./dev.sh              # without pyannote (default, no extra key needed)
+./dev.sh --pyannote   # with pyannote speaker separation
+```
+
+Before the first run, create `scryon-backend/.env.local` (gitignored):
+```bash
+export LEMONFOX_API_KEY=your-key
+export LLM_API_KEY=your-key
+```
+
+**Terminal 2 — Android app:**
+```bash
+# from scryon-android root
+./dev.sh           # builds devDebug → installs as "Scryon Dev"
+./dev.sh staging   # builds stagingDebug → installs as "Scryon Staging"
+```
+
+Make sure `DEV_BASE_URL` in `local.properties` matches your Mac's IP first:
+```bash
+ipconfig getifaddr en0   # e.g. 192.168.1.105
+# then set: DEV_BASE_URL=http://192.168.1.105:8080/ in local.properties
+```
+
+**Flavor → environment mapping:**
 
 | Variant | Backend | Use for |
 |---------|---------|---------|
@@ -79,12 +107,6 @@ The app has three flavors — pick the one that matches where your backend is ru
 | `prodRelease` | Railway prod | Play Store only — never test here |
 
 In Android Studio: **Build → Select Build Variant → devDebug**, then click Run.
-
-From the command line:
-```bash
-./gradlew :app:installDevDebug       # local backend
-./gradlew :app:installStagingDebug   # Railway staging
-```
 
 > If you skip `google-services.json`, the app still builds — `AuthGate` renders LoginScreen with a "Firebase not configured" hint. Useful for UI-only changes.
 

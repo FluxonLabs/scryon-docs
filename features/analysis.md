@@ -65,12 +65,11 @@ The full field reference lives in [API · Analysis](../api/analysis.md). What fo
 
 ### Bullets: `executiveSummaryBullets`
 
-The prose `executiveSummary` is great for reading but bad for skimming. `executiveSummaryBullets` is the LLM's parallel **scannable** view of the same content. Rules baked into the prompt:
+`executiveSummaryBullets` is the **primary detailed summary** the app renders (Fathom-style). The prose `executiveSummary` is only a brief 2–4 sentence headline. Rules baked into the prompt:
 
-- 3 to 7 bullets.
-- Each is a complete thought (sentence fragment is fine).
-- Categories: `context | outcome | next_steps | concern | agreement | decision | blocker | observation`.
-- Never duplicate sentences from `executiveSummary` verbatim — rephrase for skim-readability.
+- **8 to 15 bullets** for a typical 3–15 minute call (scale up for longer/denser calls; minimum 4 if substantive).
+- Each bullet is a **specific, self-contained fact** — include names, amounts, dates, and outcomes when the transcript provides them. Do not omit material details.
+- Categories: `context | outcome | next_steps | concern | agreement | decision | blocker | observation | topic`.
 - Cite `sourceSegmentIds` wherever possible.
 
 ### Key discussion points
@@ -193,3 +192,7 @@ Re-running analysis (e.g. after a prompt change) is safe:
 | `CallAnalysisResolverTest` | Legacy alias generation + v2 pass-through. |
 | `AnalysisPipelineActionItemsTest` | End-to-end pipeline with a mocked LLM. |
 | `CallArtifactEndpointTest` | `GET /analysis` legacy aliases from stored artifact. |
+
+## Related
+
+- [Sharing & summary digest](analysis-sharing.md) — how clients turn this analysis into a shareable WhatsApp / email summary.

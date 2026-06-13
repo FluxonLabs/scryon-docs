@@ -44,6 +44,8 @@
 * [Voice embedding](features/voice-embedding.md)
 * [LLM analysis](features/analysis.md)
 * [Semantic search](features/semantic-search.md)
+* [Sharing & summary digest](features/analysis-sharing.md)
+* [Search](features/search.md)
 
 ## Operations
 
