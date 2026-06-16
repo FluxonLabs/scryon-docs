@@ -1,4 +1,4 @@
-# Feature: {Feature Name}
+# Feature: \{Feature Name\}
 
 > Template — copy this page into the appropriate section (usually `features/`) when documenting a new capability. Delete this callout when you're done.
 
