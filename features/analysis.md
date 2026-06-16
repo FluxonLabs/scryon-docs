@@ -13,7 +13,11 @@ The analysis stage turns a normalised transcript into a structured business summ
    - A non-PII call metadata block (`callId`, `recordedAt`, `durationSeconds`, optional `title`).
    - The compact transcript view — `language`, `durationSeconds`, `speakers[]`, and segments with stable `seg_NNNN` ids, `speakerId`, role, times, and text.
 
-The transcript is **post-resolution** — by the time it reaches the LLM, speakers are named where evidence allowed, and ids are stable. The model can cite *"Priya said X (seg_0007)"* without inventing names.
+The transcript is **post-resolution** — by the time it reaches the LLM, speakers are named where evidence allowed, and ids are stable.
+
+> **Speaker-neutral narrative.** Speaker ids/labels are used **only** to resolve action-item ownership. The summary, bullets, discussion points, and sections are written speaker-neutral — *what* was discussed/decided/agreed, not *who* said it (e.g. "A revised quote was requested" rather than "Speaker 1 asked for a revised quote"). Real names appear only when the transcript states them and naming the person matters (e.g. someone to follow up with). "Speaker 1 / Speaker 2" phrasing never appears in human-readable text.
+>
+> **No repetition.** `executiveSummary`, `executiveSummaryBullets`, `keyDiscussionPoints`, and `sections` must not restate the same fact. Each fact lives in its single best home: prose = 2–4 sentence headline; bullets = the one detailed view; discussion points = only when chronological flow adds something the bullets don't (may be empty); sections = only when thematic grouping adds structure beyond the bullets.
 
 ## Schema versions
 
@@ -34,7 +38,7 @@ The transcript is **post-resolution** — by the time it reaches the LLM, speake
   oneLineSummary: ...,
   executiveSummary: "<prose paragraph>",
   executiveSummaryBullets: [
-    { text, category, importance, sourceSegmentIds }       // 3–7 scannable bullets
+    { text, category, importance, sourceSegmentIds }       // 8–15 detailed, speaker-neutral bullets
   ],
   conversationOutcome: ...,
   sections: [ Section ],                                   // dynamic, thematic
@@ -68,17 +72,19 @@ The full field reference lives in [API · Analysis](../api/analysis.md). What fo
 `executiveSummaryBullets` is the **primary detailed summary** the app renders (Fathom-style). The prose `executiveSummary` is only a brief 2–4 sentence headline. Rules baked into the prompt:
 
 - **8 to 15 bullets** for a typical 3–15 minute call (scale up for longer/denser calls; minimum 4 if substantive).
-- Each bullet is a **specific, self-contained fact** — include names, amounts, dates, and outcomes when the transcript provides them. Do not omit material details.
+- Each bullet is a **specific, self-contained, speaker-neutral fact** — include names, amounts, dates, and outcomes when the transcript provides them (describe the fact, not who voiced it). Do not omit material details.
 - Categories: `context | outcome | next_steps | concern | agreement | decision | blocker | observation | topic`.
+- Never duplicate the prose `executiveSummary` (a 2–4 sentence headline) or any other field — each fact appears once.
 - Cite `sourceSegmentIds` wherever possible.
 
 ### Key discussion points
 
 `sections` group items by *theme*. `keyDiscussionPoints` lays them out in **narrative order** — what actually happened, in sequence. This is the view a client renders when the user wants a *timeline* of the call without re-reading the transcript.
 
-- 5 to 15 points for a typical 3–15 minute call. Low-signal small talk is dropped.
+- Optional — included only when chronological order/flow adds information the bullets don't already carry (see *Speaker-neutral narrative* above). May be empty.
+- When present, 5 to 15 points for a typical 3–15 minute call. Low-signal small talk is dropped, as is anything that merely paraphrases a bullet.
 - Each point names a free-form `topic` and a `phase` (`opening | middle | closing | followup`).
-- Speaker attribution (`speakerId`, `speakerLabel`, `speakerDisplayName`, `speakerRole`) is set when one party drove the point; null for joint exchanges.
+- Written **speaker-neutral**: `speakerId`, `speakerLabel`, `speakerDisplayName`, `speakerRole` are left null. (They remain in the schema for backward compatibility but are no longer populated.)
 - `sourceSegmentIds` are always cited.
 
 ### Enriched sentiment
