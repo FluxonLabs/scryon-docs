@@ -130,6 +130,26 @@ Single call detail (no transcript / analysis — those have dedicated endpoints)
 }
 ```
 
+## POST `/api/calls/{id}/reanalyze` (dev/staging only)
+
+Re-run the LLM analysis for a **completed** call using its stored `NORMALIZED_TRANSCRIPT_JSON` — no audio is re-transcribed or re-diarized. Overwrites the `ANALYSIS_JSON` artifact and re-applies action-item side effects (delete-then-insert), so it is idempotent and safe to re-run after a prompt change.
+
+**Gated to non-prod.** The controller is annotated `@Profile("!prod")`, so the route is **not registered when the server runs the `prod` profile** (returns 404 there). The Android client mirrors this with a `DEVELOPER_TOOLS` build flag (true for `dev`/`staging` flavours only) and surfaces it under Settings → Developer → Reanalyze.
+
+Scoped to the authenticated user; foreign/unknown ids return 404.
+
+### Response — `200 OK`
+
+The updated call detail (same shape as `GET /api/calls/{id}`), reflecting the refreshed analysis.
+
+### Errors
+
+| Status | Cause |
+|---|---|
+| 404 | Call missing, owned by another user, or has no stored transcript to re-analyze. |
+| 409 | Call is not in a re-analyzable (`COMPLETED`) state. `error` carries the offending status. |
+| 404 (prod) | Route not registered — server is running the `prod` profile. |
+
 ## DELETE `/api/calls/{id}`
 
 Hard-delete a call, all artifacts, all action items.

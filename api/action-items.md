@@ -111,6 +111,7 @@ The updated `ActionItemResponse` (same shape as above, including `intent` and `i
 ## Client integration notes
 
 - **Chips are a client concern.** The backend classifies intent and extracts metadata; the Android app maps `intent` → list of `ChipSpec` (label + icon + `Intent` builder).
+- **Two surfaces, same chips.** `intent` + `intentMetadata` are returned on **both** `GET /api/actions` (the Actions tab) and on the action items inside `GET /api/calls/{id}/analysis` (the call-detail screen). The app renders identical integration chips on both via a shared renderer, so a call's action items show Calendar/Gmail/Call/Reminder chips inline — not only in the global Actions tab.
 - **Completion is server-side.** After the user finishes work in the target app, they tap the checkbox → `PATCH /api/actions/{id}` with `status: COMPLETED`.
 - **Legacy rows.** Items extracted before intent classification was added have `intent: null` — render no chips.
 - **Privacy.** `toEmail` and `phoneNumber` are only populated when spoken in the transcript (or from call-log enrichment the user already consented to). The LLM is told to leave fields null rather than guess.
