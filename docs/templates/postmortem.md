@@ -1,4 +1,4 @@
-# Post-mortem: {Incident title}
+# Post-mortem: \{Incident title\}
 
 > Template — copy this page into `operations/postmortems/YYYY-MM-DD-slug.md` after a customer-impacting incident. Delete this callout when you're done.
 

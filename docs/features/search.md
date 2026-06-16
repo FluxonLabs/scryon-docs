@@ -126,14 +126,11 @@ $$ LANGUAGE plpgsql;
 Populate `search_text` during the analysis pipeline after normalization (reuse `CallEmbeddingService.buildEmbeddingText()` which already loads `cleanText` from the artifact store).
 
 **Effort:** ~2 hours. New Flyway migration + write `search_text` in `CallProcessingService` after normalization.
-
 ---
-
 ### 2. HNSW index for vector search
-
 **When:** Vector search queries slow down as `call_embeddings` grows beyond ~50,000 rows.
 
-**Current gap:** pgvector defaults to an exact (brute-force) scan unless an index is created. For small libraries this is fast (<5ms), but at scale a full table scan on 1536-dim vectors becomes expensive.
+**Current gap:** pgvector defaults to an exact (brute-force) scan unless an index is created. For small libraries this is fast (`<5ms`), but at scale a full table scan on 1536-dim vectors becomes expensive.
 
 **Fix:** Add an HNSW (Hierarchical Navigable Small World) index — the fastest approximate nearest-neighbour algorithm supported by pgvector:
 
@@ -155,11 +152,8 @@ Tune `m` and `ef_construction` based on accuracy vs. speed trade-off:
 ### 3. Cross-encoder reranking
 
 **When:** Library grows beyond ~10,000 calls and users report ranking inaccuracy (RRF ranks a less-relevant call above the best match).
-
 **What it is:** After hybrid search returns the top N candidates, pass each (query, call_summary) pair through a cross-encoder model to produce an exact relevance score. More accurate than RRF because the cross-encoder sees both the query and the document together.
-
 **Architecture:**
-
 ```
 Hybrid RRF → top 50 candidates
                 ↓
@@ -169,7 +163,6 @@ Cross-encoder (e.g. cross-encoder/ms-marco-MiniLM-L-6-v2 via HuggingFace Inferen
                 ↓
 Re-sorted top 10 → return to client
 ```
-
 **Options:**
 - **HuggingFace Inference API** — hosted, no GPU needed, ~$0.0001/call
 - **Self-hosted** (Docker + `sentence-transformers`) — zero cost, requires GPU/CPU compute
@@ -209,26 +202,17 @@ scryon:
 ```
 
 **Effort:** ~1 day. New `CrossEncoderReranker` service, new config class, wire into `CallSearchService`.
-
 **Latency impact:** +150–400ms per search query. Only enable when ranking accuracy is more important than latency.
-
 ---
-
 ### 4. Query expansion for ambiguous short queries
-
 **When:** Short queries like "Anu" (a name) return no results because neither BM25 nor vector matches well.
-
 **What it is:** Before searching, expand the query using an LLM to generate semantic variants:
-
 ```
 Input:  "Anu"
 Output: "Anu, call with Anu, conversation with Anu, discussion with Anu"
 ```
-
 This enriches both the BM25 query and the embedding input.
-
 **Implementation sketch:**
-
 ```java
 private String expandQuery(String query) {
     if (query.split("\\s+").length > 3) return query; // skip for long queries
@@ -239,7 +223,6 @@ private String expandQuery(String query) {
     return llmClient.complete(prompt, 50); // 50 token limit
 }
 ```
-
 **Effort:** ~2 hours. Uses existing `OpenAiAnalysisClient` or a new lightweight LLM call.
 
 **When NOT to use:** If hybrid BM25+vector already returns good results, query expansion adds latency without benefit. Add it only as a fallback when hybrid returns 0 results.
@@ -261,11 +244,8 @@ ts_rank(search_vector, query, 32) * 2.0   -- title gets 2x weight
 Or — simpler — add a `call_type` filter to the search query so recruiters only search over `callType = 'interview'` calls.
 
 **Effort:** ~3 hours. Add optional `callType` filter parameter to `GET /api/calls/search?type=interview`.
-
 ---
-
 ## Implementation priority
-
 | Improvement | Trigger condition | Effort |
 |---|---|---|
 | **Transcript text in FTS index** | Users search names/terms not in summary | 2 hrs |
@@ -273,9 +253,7 @@ Or — simpler — add a `call_type` filter to the search query so recruiters on
 | **Cross-encoder reranking** | Library > 10k calls, ranking complaints | 1 day |
 | **Query expansion** | Short queries consistently miss results | 2 hrs |
 | **Per-call-type tuning** | Domain-specific use cases (recruiters, sales) | 3 hrs |
-
 ## Code map
-
 | Class | File | Purpose |
 |---|---|---|
 | `CallSearchService` | `com/scryon/search/` | Orchestrates hybrid search; BM25 fallback |

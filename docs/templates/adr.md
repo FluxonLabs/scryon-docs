@@ -1,4 +1,4 @@
-# ADR-{NNN}: {Decision title}
+# ADR-\{NNN\}: \{Decision title\}
 
 > Template — copy this page into `architecture/adrs/{NNN}-slug.md` when recording an architectural decision. Delete this callout when you're done.
 
@@ -27,19 +27,19 @@ A short, declarative statement of what we decided.
 
 For each option, explain what it is and why it lost.
 
-### Option A — {Name}
+### Option A — \{Name\}
 
 - **Pros:** ...
 - **Cons:** ...
 - **Verdict:** rejected because ...
 
-### Option B — {Name}
+### Option B — \{Name\}
 
 - **Pros:** ...
 - **Cons:** ...
 - **Verdict:** rejected because ...
 
-### Option C — {Name} _(chosen)_
+### Option C — \{Name\} _(chosen)_
 
 - **Pros:** ...
 - **Cons:** ...
