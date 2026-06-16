@@ -1,4 +1,4 @@
-# Runbook: {Operation}
+# Runbook: \{Operation\}
 
 > Template — copy this page into `operations/runbook.md` (or its own file under `operations/runbooks/`) when documenting a new operational task. Delete this callout when you're done.
 
@@ -67,5 +67,5 @@ How to confirm the fix worked.
 ## Related
 
 - Code: `XxxService.java`
-- Docs: [...](../features/xxx.md)
+- Docs: `[...](../features/xxx.md)` — link to the relevant feature doc.
 - Related runbooks: [...](runbook.md)

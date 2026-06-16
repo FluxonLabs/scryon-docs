@@ -78,5 +78,5 @@ Set expectations explicitly. Useful for keeping scope creep out of follow-ups.
 
 ## Related
 
-- [Other feature](other-feature.md)
+- `[Other feature](other-feature.md)` — link to a related feature doc.
 - [Relevant ADR](../templates/adr.md)

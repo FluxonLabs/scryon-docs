@@ -1,4 +1,4 @@
-# {METHOD} `{path}`
+# \{METHOD\} `{path}`
 
 > Template — copy this section into the appropriate `api/*.md` file when documenting a new endpoint. Delete this callout when you're done.
 
