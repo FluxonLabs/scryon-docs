@@ -66,8 +66,14 @@ const config = {
         },
       },
       navbar: {
-        title: 'Scryon',
+        title: '',
         hideOnScroll: false,
+        logo: {
+          alt: 'Scryon',
+          src: 'img/scryon_dark.png',
+          srcDark: 'img/scryon_light.png',
+          height: 28,
+        },
         items: [
           {
             type: 'docSidebar',

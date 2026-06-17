@@ -91,12 +91,9 @@
   gap: 0;
 }
 
-.navbar__title {
-  background: linear-gradient(135deg, var(--ifm-color-primary) 0%, #38BDF8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  font-weight: 700;
+.navbar__logo {
+  height: 28px !important;
+  width: auto !important;
 }
 
 .navbar__link {
