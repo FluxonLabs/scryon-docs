@@ -114,7 +114,7 @@ function Hero() {
             AI Phone Intelligence
           </div>
           <h1 className={styles.heroTitle}>
-            Understand Every<br />Phone Call
+            Remember Every<br />Phone Call
           </h1>
           <p className={styles.heroSubtitle}>
             Scryon transforms raw call recordings into structured intelligence —
