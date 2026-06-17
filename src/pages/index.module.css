@@ -16,6 +16,12 @@
   z-index: 0;
 }
 
+.heroLogo {
+  height: 48px;
+  width: auto;
+  margin-bottom: 1.5rem;
+}
+
 .heroContent {
   position: relative;
   z-index: 1;
