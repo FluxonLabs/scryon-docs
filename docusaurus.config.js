@@ -1,46 +1,33 @@
 // @ts-check
-// `@type` JSDoc annotations allow editor autocompletion and type checking
-// (when paired with `@ts-check`).
-// There are various equivalent ways to declare your Docusaurus config.
-// See: https://docusaurus.io/docs/api/docusaurus-config
-
 import {themes as prismThemes} from 'prism-react-renderer';
-
-// This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
-  title: 'My Site',
-  tagline: 'Dinosaurs are cool',
+  title: 'Scryon',
+  tagline: 'AI Phone Call Intelligence Platform',
   favicon: 'img/favicon.ico',
 
-  // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
-    v4: true, // Improve compatibility with the upcoming Docusaurus v4
+    v4: true,
   },
 
   themes: ['@docusaurus/theme-mermaid'],
 
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: 'warn',
+    },
   },
 
-  // Set the production url of your site here
-  url: 'https://your-docusaurus-site.example.com',
-  // Set the /<baseUrl>/ pathname under which your site is served
-  // For GitHub pages deployment, it is often '/<projectName>/'
+  url: 'https://docs.scryon.ai',
   baseUrl: '/',
 
-  // GitHub pages deployment config.
-  // If you aren't using GitHub pages, you don't need these.
-  organizationName: 'facebook', // Usually your GitHub org/user name.
-  projectName: 'docusaurus', // Usually your repo name.
+  organizationName: 'FluxonLabs',
+  projectName: 'scryon-docs',
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: 'warn',
 
-  // Even if you don't use internationalization, you can use this field to set
-  // useful metadata like html lang. For example, if your site is Chinese, you
-  // may want to replace "en" with "zh-Hans".
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],
@@ -53,10 +40,8 @@ const config = {
       ({
         docs: {
           sidebarPath: './sidebars.js',
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          editUrl:
-            'https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/',
+          editUrl: 'https://github.com/FluxonLabs/scryon-docs/tree/main/',
+          showLastUpdateTime: true,
         },
         blog: false,
         theme: {
@@ -69,28 +54,47 @@ const config = {
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
-      // Replace with your project's social card
-      image: 'img/docusaurus-social-card.jpg',
+      image: 'img/scryon-social-card.jpg',
       colorMode: {
+        defaultMode: 'dark',
         respectPrefersColorScheme: true,
       },
-      navbar: {
-        title: 'My Site',
-        logo: {
-          alt: 'My Site Logo',
-          src: 'img/logo.svg',
+      docs: {
+        sidebar: {
+          hideable: true,
+          autoCollapseCategories: true,
         },
+      },
+      navbar: {
+        title: 'Scryon',
+        hideOnScroll: false,
         items: [
           {
             type: 'docSidebar',
-            sidebarId: 'tutorialSidebar',
+            sidebarId: 'docsSidebar',
             position: 'left',
-            label: 'Tutorial',
+            label: 'Docs',
           },
           {
-            href: 'https://github.com/facebook/docusaurus',
-            label: 'GitHub',
+            to: '/docs/getting-started/overview',
+            label: 'Getting Started',
+            position: 'left',
+          },
+          {
+            to: '/docs/features/transcription',
+            label: 'Features',
+            position: 'left',
+          },
+          {
+            to: '/docs/architecture/system-overview',
+            label: 'Architecture',
+            position: 'left',
+          },
+          {
+            href: 'https://github.com/FluxonLabs/scryon-docs',
             position: 'right',
+            className: 'navbar-github-link',
+            'aria-label': 'GitHub repository',
           },
         ],
       },
@@ -98,46 +102,52 @@ const config = {
         style: 'dark',
         links: [
           {
-            title: 'Docs',
+            title: 'Documentation',
             items: [
-              {
-                label: 'Tutorial',
-                to: '/docs/intro',
-              },
+              {label: 'Overview', to: '/docs/getting-started/overview'},
+              {label: 'Quick Start', to: '/docs/getting-started/quickstart'},
+              {label: 'Configuration', to: '/docs/getting-started/configuration'},
+              {label: 'Local Setup', to: '/docs/getting-started/local-setup'},
             ],
           },
           {
-            title: 'Community',
+            title: 'Features',
             items: [
-              {
-                label: 'Stack Overflow',
-                href: 'https://stackoverflow.com/questions/tagged/docusaurus',
-              },
-              {
-                label: 'Discord',
-                href: 'https://discordapp.com/invite/docusaurus',
-              },
-              {
-                label: 'X',
-                href: 'https://x.com/docusaurus',
-              },
+              {label: 'Transcription', to: '/docs/features/transcription'},
+              {label: 'Speaker Diarization', to: '/docs/features/diarization'},
+              {label: 'AI Analysis', to: '/docs/features/analysis'},
+              {label: 'Semantic Search', to: '/docs/features/semantic-search'},
             ],
           },
           {
-            title: 'More',
+            title: 'Resources',
+            items: [
+              {label: 'Architecture', to: '/docs/architecture/system-overview'},
+              {label: 'Android SDK', to: '/docs/android/permissions'},
+              {label: 'Operations', to: '/docs/operations/deployment'},
+              {label: 'Privacy & Security', to: '/docs/privacy-and-security'},
+            ],
+          },
+          {
+            title: 'Company',
             items: [
               {
                 label: 'GitHub',
-                href: 'https://github.com/facebook/docusaurus',
+                href: 'https://github.com/FluxonLabs',
+              },
+              {
+                label: 'Contributing',
+                to: '/docs/development/contributing',
               },
             ],
           },
         ],
-        copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+        copyright: `Copyright © ${new Date().getFullYear()} FluxonLabs. Built with Docusaurus.`,
       },
       prism: {
-        theme: prismThemes.github,
-        darkTheme: prismThemes.dracula,
+        theme: prismThemes.oneLight,
+        darkTheme: prismThemes.oneDark,
+        additionalLanguages: ['kotlin', 'java', 'bash', 'json', 'yaml', 'sql'],
       },
     }),
 };
