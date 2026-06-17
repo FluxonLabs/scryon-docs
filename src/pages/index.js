@@ -109,15 +109,6 @@ function Hero() {
       <div className={styles.heroGlow} aria-hidden="true" />
       <div className="container">
         <div className={styles.heroContent}>
-          <img
-            src="/img/scryon_blue.png"
-            alt="Scryon"
-            className={styles.heroLogo}
-          />
-          <div className={styles.heroBadge}>
-            <span className={styles.heroBadgeDot} aria-hidden="true" />
-            AI Phone Intelligence
-          </div>
           <h1 className={styles.heroTitle}>
             Remember Every<br />Phone Call
           </h1>

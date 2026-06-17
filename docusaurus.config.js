@@ -70,7 +70,7 @@ const config = {
         hideOnScroll: false,
         logo: {
           alt: 'Scryon',
-          src: 'img/scryon_dark.png',
+          src: 'img/scryon_blue.png',
           srcDark: 'img/scryon_light.png',
           height: 28,
         },
