@@ -4,7 +4,7 @@ Action items are persisted as first-class objects derived from the LLM analysis.
 
 ## GET `/api/actions`
 
-List the authenticated user's action items. Pending first, then completed; within each group, newest first.
+List the authenticated user's action items. Newest first.
 
 ### Response — `200 OK`
 
@@ -16,7 +16,7 @@ List the authenticated user's action items. Pending first, then completed; withi
     "title": "Send revised pricing",
     "description": "Revised pricing sheet by Friday",
     "dueDate": "2026-06-26",
-    "status": "PENDING",
+    "status": "OPEN",
     "sourceText": "priority=high; segments=seg_0002; text=\"I'll send the revised quote…\"",
     "createdAt": "2026-05-29T13:00:42Z",
     "updatedAt": "2026-05-29T13:00:42Z",
@@ -45,7 +45,7 @@ List the authenticated user's action items. Pending first, then completed; withi
 | `title` | string | Short action title from the LLM. |
 | `description` | string | Longer context. Nullable. |
 | `dueDate` | ISO date | `YYYY-MM-DD`. Null when the transcript didn't resolve one. |
-| `status` | enum | `PENDING` or `COMPLETED`. |
+| `status` | enum | `OPEN`, `IN_PROGRESS`, `DONE`, or `DISMISSED`. |
 | `sourceText` | string | Forensic payload (priority, cited segments, excerpt). |
 | `ownerSpeakerId` | string | Stable `spk_N` from the normalised transcript. |
 | `ownerSpeakerLabel` | string | Display label at extraction time. |
@@ -153,7 +153,7 @@ Full replacement of a user-editable action item (title, description, dueDate, pr
 | `description` | No | Pass `null` to clear. |
 | `dueDate` | No | `YYYY-MM-DD`. Pass `null` to clear. |
 | `priority` | No | `LOW`, `MEDIUM`, or `HIGH`. Pass `null` to clear. |
-| `status` | Yes | `OPEN`, `PENDING`, `IN_PROGRESS`, `COMPLETED`, `DONE`, or `DISMISSED`. |
+| `status` | Yes | `OPEN`, `IN_PROGRESS`, `DONE`, or `DISMISSED`. |
 
 ### Response — `200 OK`
 
@@ -185,10 +185,10 @@ Update an action item's status. Today only `status` is settable. Prefer `PUT /ap
 ### Request
 
 ```json
-{ "status": "COMPLETED" }
+{ "status": "DONE" }
 ```
 
-`status` must be `"PENDING"` or `"COMPLETED"`.
+`status` must be one of `"OPEN"`, `"IN_PROGRESS"`, `"DONE"`, or `"DISMISSED"`. The legacy values `PENDING` and `COMPLETED` were renamed in V19 and are no longer accepted.
 
 ### Response — `200 OK`
 
@@ -205,7 +205,7 @@ The updated `ActionItemResponse` (same shape as above, including `intent` and `i
 
 - **Chips are a client concern.** The backend classifies intent and extracts metadata; the Android app maps `intent` → list of `ChipSpec` (label + icon + `Intent` builder).
 - **Two surfaces, same chips.** `intent` + `intentMetadata` are returned on **both** `GET /api/actions` (the Actions tab) and on the action items inside `GET /api/calls/{id}/analysis` (the call-detail screen). The app renders identical integration chips on both via a shared renderer, so a call's action items show Calendar/Gmail/Call/Reminder chips inline — not only in the global Actions tab.
-- **Completion is server-side.** After the user finishes work in the target app, they tap the checkbox → `PATCH /api/actions/{id}` with `status: COMPLETED`.
+- **Completion is server-side.** After the user finishes work in the target app, they tap the checkbox → `PATCH /api/actions/{id}` with `{ "status": "DONE" }`. To un-complete, send `{ "status": "OPEN" }`.
 - **Full edit via PUT.** Use `PUT /api/action-items/{id}` to update title, description, due date, priority, and status in one request. `PATCH /api/actions/{id}` remains for status-only toggles.
 - **Manual creation.** Users can add their own tasks on a call via `POST /api/calls/{callId}/action-items`. These items have `source: "MANUAL"` and `priority` can be set at creation time.
 - **Priority.** `priority` is `LOW`, `MEDIUM`, or `HIGH`. AI-extracted items may have `null` priority on older rows; the client should handle null gracefully (omit the badge rather than crash).
