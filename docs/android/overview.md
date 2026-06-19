@@ -21,10 +21,18 @@ Four bottom-bar tabs make up the app's surface:
 |---|---|
 | **Calls** | A stats card + the untranscribed recordings discovered on the device. Each row has *Transcribe* / *Cancel*. The first Transcribe tap of the session prompts for `READ_CALL_LOG` (used for upload enrichment — uploads still work if denied). |
 | **Transcribed** | Every call the backend knows about for the signed-in user, plus synthetic *Uploading* rows for in-flight uploads. Each row shows a status chip; in-flight rows expose a **Cancel upload / Cancel analysis** action. Tap a completed row to open detail. |
-| **Actions** | All action items extracted from analyses (`GET /api/actions`), grouped *Pending → Completed*. Each row shows an **Assigned to** owner pill (CallLog name if available, else `Speaker N`, else USER/CONTACT), an optional due-date pill, and an *Open call* link. Tap to toggle status (writes `PATCH /api/actions/{id}`). |
+| **Actions** | All action items across all calls (`GET /api/actions`), grouped *Pending → Completed*. Each row shows a **priority badge** (High / Med / Low), an **Assigned to** owner pill, an optional due-date pill, and an *Open call* link. Tap a row to toggle its status (`PATCH /api/actions/{id}`). Each row also exposes an **edit icon** (opens a form sheet to update title, description, due date, and priority via `PUT /api/action-items/{id}`) and a **delete icon** (confirm dialog → `DELETE /api/action-items/{id}`). |
 | **Settings** | Account (edit name, sign out, delete), **Auth diagnostics** (Firebase uid + Bearer token preview / reveal / copy / force-refresh), backend info, notifications toggle, **call-log enrichment** state (with Re-ask / app-settings shortcut), privacy, theme, and the opt-in **Speaker recognition** card. |
 
 Tapping a completed row opens a **Call detail** screen that loads `/api/calls/{id}` + `/transcript` + `/analysis` in parallel. Transcript bubbles render the refined speaker (CallLog name when available) annotated with **You** for the USER role; analysis tab bullets show **Assigned to …** lines.
+
+The Call detail screen has three tabs:
+
+| Tab | Content |
+|---|---|
+| **Transcript** | Speaker-attributed chat bubbles (or plain text fallback). |
+| **Analysis** | User-editable summary and notes cards, then AI analysis cards (sentiment, key points, action items snapshot, etc.). |
+| **Tasks** | Persistent action items scoped to this call (`GET /api/calls/{callId}/action-items`). Loads lazily on first visit. Shows Pending and Completed sections. A **+** FAB creates a new manual task (`POST /api/calls/{callId}/action-items`). Tap a row to toggle status; edit and delete icons are available per row, same as the global Actions tab. |
 
 ## Tech stack
 

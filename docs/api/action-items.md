@@ -85,9 +85,102 @@ Every field is optional. The LLM is instructed never to invent emails, phone num
 | `task` | `title`, `notes` |
 | `none` | (empty / omitted) |
 
+## GET `/api/calls/{callId}/action-items`
+
+List the persistent action items attached to a specific call. Returns the same shape as `GET /api/actions` but scoped to one call. Includes both AI-extracted items (`source: "AI"`) and user-created items (`source: "MANUAL"`).
+
+### Response — `200 OK`
+
+Same array shape as `GET /api/actions`. Each item now also carries:
+
+| Field | Type | Notes |
+|---|---|---|
+| `priority` | enum | `LOW`, `MEDIUM`, or `HIGH`. Null on legacy AI-extracted items. |
+| `source` | string | `"AI"` (extracted by pipeline) or `"MANUAL"` (created by user). Null on very old rows. |
+
+## POST `/api/calls/{callId}/action-items`
+
+Create a manual action item attached to a call.
+
+### Request
+
+```json
+{
+  "title": "Send revised pricing",
+  "description": "Attach the updated Q3 sheet",
+  "dueDate": "2026-06-30",
+  "priority": "HIGH"
+}
+```
+
+| Field | Required | Notes |
+|---|---|---|
+| `title` | Yes | Short action title. |
+| `description` | No | Longer context. |
+| `dueDate` | No | `YYYY-MM-DD`. |
+| `priority` | No | `LOW`, `MEDIUM`, or `HIGH`. |
+
+### Response — `201 Created`
+
+The created `ActionItemResponse` with `source: "MANUAL"`.
+
+### Errors
+
+| Status | Cause |
+|---|---|
+| 400 | Missing `title` or invalid field. |
+| 404 | Call not found or owned by another user. |
+
+## PUT `/api/action-items/{id}`
+
+Full replacement of a user-editable action item (title, description, dueDate, priority, status). All fields must be supplied; use the current values for fields the user did not change.
+
+### Request
+
+```json
+{
+  "title": "Send revised pricing",
+  "description": "Attach the updated Q3 sheet",
+  "dueDate": "2026-06-30",
+  "priority": "HIGH",
+  "status": "OPEN"
+}
+```
+
+| Field | Required | Notes |
+|---|---|---|
+| `title` | Yes | |
+| `description` | No | Pass `null` to clear. |
+| `dueDate` | No | `YYYY-MM-DD`. Pass `null` to clear. |
+| `priority` | No | `LOW`, `MEDIUM`, or `HIGH`. Pass `null` to clear. |
+| `status` | Yes | `OPEN`, `PENDING`, `IN_PROGRESS`, `COMPLETED`, `DONE`, or `DISMISSED`. |
+
+### Response — `200 OK`
+
+The updated `ActionItemResponse`.
+
+### Errors
+
+| Status | Cause |
+|---|---|
+| 400 | Missing required field or invalid value. |
+| 404 | Item not found or owned by another user. |
+
+## DELETE `/api/action-items/{id}`
+
+Hard-deletes an action item. Idempotent — returns 404 if already deleted.
+
+### Response — `204 No Content`
+
+### Errors
+
+| Status | Cause |
+|---|---|
+| 404 | Item not found or owned by another user. |
+
 ## PATCH `/api/actions/{id}`
 
-Update an action item's status. Today only `status` is settable.
+Update an action item's status. Today only `status` is settable. Prefer `PUT /api/action-items/{id}` for full edits.
 
 ### Request
 
@@ -113,5 +206,8 @@ The updated `ActionItemResponse` (same shape as above, including `intent` and `i
 - **Chips are a client concern.** The backend classifies intent and extracts metadata; the Android app maps `intent` → list of `ChipSpec` (label + icon + `Intent` builder).
 - **Two surfaces, same chips.** `intent` + `intentMetadata` are returned on **both** `GET /api/actions` (the Actions tab) and on the action items inside `GET /api/calls/{id}/analysis` (the call-detail screen). The app renders identical integration chips on both via a shared renderer, so a call's action items show Calendar/Gmail/Call/Reminder chips inline — not only in the global Actions tab.
 - **Completion is server-side.** After the user finishes work in the target app, they tap the checkbox → `PATCH /api/actions/{id}` with `status: COMPLETED`.
+- **Full edit via PUT.** Use `PUT /api/action-items/{id}` to update title, description, due date, priority, and status in one request. `PATCH /api/actions/{id}` remains for status-only toggles.
+- **Manual creation.** Users can add their own tasks on a call via `POST /api/calls/{callId}/action-items`. These items have `source: "MANUAL"` and `priority` can be set at creation time.
+- **Priority.** `priority` is `LOW`, `MEDIUM`, or `HIGH`. AI-extracted items may have `null` priority on older rows; the client should handle null gracefully (omit the badge rather than crash).
 - **Legacy rows.** Items extracted before intent classification was added have `intent: null` — render no chips.
 - **Privacy.** `toEmail` and `phoneNumber` are only populated when spoken in the transcript (or from call-log enrichment the user already consented to). The LLM is told to leave fields null rather than guess.
