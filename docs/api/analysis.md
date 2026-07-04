@@ -10,15 +10,26 @@ Returns the structured business analysis for a completed call.
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "callType": "sales",
   "suggestedTitle": "Pricing follow-up with Alex",
   "oneLineSummary": "Discussed Q3 roadmap and follow-up demo on Friday.",
   "executiveSummary": "The call covered the upcoming product launch, the customer's pricing concerns, and a follow-up demo scheduled for Friday at 11am PT.",
   "executiveSummaryBullets": [
-    {"text": "Customer raised pricing as a blocker for procurement.", "category": "concern",    "importance": "high", "sourceSegmentIds": ["seg_0012"]},
-    {"text": "Friday demo scheduled with procurement present.",      "category": "agreement",  "importance": "high", "sourceSegmentIds": ["seg_0021"]},
-    {"text": "Revised quote owed by Wednesday.",                      "category": "next_steps", "importance": "high", "sourceSegmentIds": ["seg_0015"]}
+    {
+      "header": "Pricing Discussion",
+      "startTimestamp": "04:12",
+      "paragraphs": [
+        "The customer raised pricing as a blocker for procurement, pushing back on the $99/seat tier as high for their team size."
+      ]
+    },
+    {
+      "header": "Next Steps Agreed",
+      "startTimestamp": "11:03",
+      "paragraphs": [
+        "A Friday demo was scheduled with procurement present, and a revised quote was agreed to be sent by Wednesday."
+      ]
+    }
   ],
   "conversationOutcome": "Agreed on Friday demo; revised pricing to be sent by Wednesday.",
   "sections": [
@@ -89,6 +100,14 @@ Returns the structured business analysis for a completed call.
     }
   ],
   "followUps": [],
+  "nextSteps": [
+    {
+      "text": "Prepare the presentation deck for tomorrow's review",
+      "ownerSpeaker": "Speaker 1",
+      "when": "tomorrow",
+      "sourceSegmentIds": ["seg_0018"]
+    }
+  ],
   "importantDates": [],
   "decisions": [],
   "commitments": [],
@@ -137,17 +156,18 @@ Returns the structured business analysis for a completed call.
 
 | Field | Type | Notes |
 |---|---|---|
-| `schemaVersion` | int | `2`. v1 artifacts are still served unchanged. |
+| `schemaVersion` | int | `3`. v1/v2 artifacts are still served unchanged in their original shape. |
 | `callType` | string | `personal \| business \| sales \| support \| interview \| finance \| healthcare \| legal \| education \| unknown \| other` |
 | `suggestedTitle` | string | Headline. |
 | `oneLineSummary` | string | A single sentence. Mirrored as `shortSummary` for legacy clients. |
-| `executiveSummary` | string | Multi-paragraph prose summary. Mirrored as `detailedSummary` for legacy clients. |
-| `executiveSummaryBullets` | `SummaryBullet[]` | **v2** — 3–7 scannable bullets paralleling `executiveSummary`. |
+| `executiveSummary` | string | 2–4 sentence headline prose. Mirrored as `detailedSummary` for legacy clients. |
+| `executiveSummaryBullets` | `SummaryBullet[]` | **v3** — 3–6 blog-post sections (`header`, `startTimestamp`, `paragraphs[]`) that are the primary detailed summary. Pre-v3 artifacts use the old flat-bullet shape — see [`SummaryBullet`](#summarybullet) below. |
 | `conversationOutcome` | string | What was decided / resolved. |
 | `sections` | `Section[]` | Open-ended, model-defined thematic groupings. |
 | `keyDiscussionPoints` | `DiscussionPoint[]` | **v2** — chronological bullet view of the call's discussion flow. |
-| `actionItems` | `ActionItem[]` | Snapshot of action items at analysis time. Prefer [`/api/actions`](action-items.md) for editable state. |
-| `followUps` / `importantDates` / `decisions` / `commitments` / `openQuestions` / `risks` / `opportunities` / `peopleMentioned` / `numbersAndAmounts` | typed arrays | All optional; empty when the model has no evidence. |
+| `actionItems` | `ActionItem[]` | Snapshot of discrete, launchable action items at analysis time. Prefer [`/api/actions`](action-items.md) for editable state. |
+| `nextSteps` | `NextStep[]` | **v3** — planned progression / "I'll do X" statements, split out from `actionItems`. Not launchable, not persisted to Postgres — see [Features · Next steps vs. action items](../features/analysis.md#next-steps-vs-action-items). |
+| `followUps` / `importantDates` / `decisions` / `commitments` / `openQuestions` / `risks` / `opportunities` / `peopleMentioned` / `numbersAndAmounts` | typed arrays | All optional; empty when the model has no evidence. `followUps` predates `nextSteps` and is no longer actively populated by the prompt — treat `nextSteps` as current. |
 | `sentiment` | `Sentiment` | **v2 extended** — polarity, score, per-party breakdown, progression timeline, emotional signals. |
 | `tone` | `Tone` | **v2 new** — register (formality / energy / pace), descriptors, per-party tone. |
 | `tags` | string[] | Short lowercase tags for search/filter. |
@@ -157,14 +177,26 @@ Returns the structured business analysis for a completed call.
 
 #### `SummaryBullet`
 
-A scannable bullet inside `executiveSummaryBullets`. Aim for 3–7 of these.
+A blog-post section inside `executiveSummaryBullets` (**v3**). Aim for 3–6 of these covering the whole call.
 
 | Field | Type | Notes |
 |---|---|---|
-| `text` | string | Sentence fragment or short sentence. |
-| `category` | string | `context \| outcome \| next_steps \| concern \| agreement \| decision \| blocker \| observation` |
-| `importance` | string | `low \| medium \| high` |
-| `sourceSegmentIds` | string[] | Segment ids backing the bullet. |
+| `header` | string | Short section heading, e.g. `"Pricing Discussion"`. |
+| `startTimestamp` | string | Call timestamp where this section begins — `"MM:SS"`, or `"HH:MM:SS"` for calls over an hour. |
+| `paragraphs` | string[] | One or more complete, self-contained prose paragraphs covering everything material in that phase. |
+
+> **Pre-v3 shape.** Artifacts with `schemaVersion` 1 or 2 use the older flat-bullet shape instead: `{ text, category, importance, sourceSegmentIds }`, where `category` is one of `context \| outcome \| next_steps \| concern \| agreement \| decision \| blocker \| observation \| topic`. Both shapes can appear under the same JSON key depending on when the call was analyzed — check `schemaVersion` before assuming which one you have.
+
+#### `NextStep`
+
+An entry inside `nextSteps` (**v3**) — a planned, forward-looking activity a speaker said they'd do, distinct from a launchable [`ActionItem`](#actionitem).
+
+| Field | Type | Notes |
+|---|---|---|
+| `text` | string | The planned activity, e.g. `"Prepare the presentation deck for tomorrow's review"`. |
+| `ownerSpeaker` | string | Legacy-style label (e.g. `"Speaker 1"`) or null. |
+| `when` | string | Free-form timing the model could extract (e.g. `"tomorrow"`, `"next week"`), or null. |
+| `sourceSegmentIds` | string[] | Segment ids backing the item. |
 
 #### `DiscussionPoint`
 

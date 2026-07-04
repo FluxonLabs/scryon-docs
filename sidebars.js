@@ -31,6 +31,22 @@ const sidebars = {
     },
     {
       type: 'category',
+      label: 'API Reference',
+      items: [
+        'api/overview',
+        'api/authentication',
+        'api/calls',
+        'api/transcripts',
+        'api/analysis',
+        'api/action-items',
+        'api/contacts',
+        'api/analytics',
+        'api/voice-profile',
+        'api/users',
+      ],
+    },
+    {
+      type: 'category',
       label: 'Architecture',
       items: [
         'architecture/system-overview',

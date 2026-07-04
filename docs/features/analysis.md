@@ -24,28 +24,32 @@ The transcript is **post-resolution** — by the time it reaches the LLM, speake
 | Version | What's in it |
 |---|---|
 | **v1** | Prose `executiveSummary`, `sections[]`, flat `Sentiment { overall, reason }`. No tone. |
-| **v2** *(current)* | Adds `executiveSummaryBullets[]` (bullet companion to the prose summary), `keyDiscussionPoints[]` (chronological flow), enriched `Sentiment` (numeric `score`, per-party split, `progression[]`, `emotionalSignals[]`), and a new top-level `Tone`. All additions are nullable — v1 artifacts still deserialise unchanged. |
+| **v2** | Adds `executiveSummaryBullets[]` (flat bullet companion to the prose summary), `keyDiscussionPoints[]` (chronological flow), enriched `Sentiment` (numeric `score`, per-party split, `progression[]`, `emotionalSignals[]`), and a new top-level `Tone`. All additions are nullable — v1 artifacts still deserialise unchanged. |
+| **v3** *(current)* | `executiveSummaryBullets[]` changes shape from flat bullets to **blog-post sections** — `header`, `startTimestamp`, `paragraphs[]` — see below. Also adds a dedicated `nextSteps[]` bucket, split out from `actionItems[]`. Old v1/v2 artifacts still deserialise (new fields left null); clients should fall back to `executiveSummary` when `executiveSummaryBullets` is absent or empty. |
 
-`ScryonAnalysis.CURRENT_SCHEMA_VERSION` is `2`. The endpoint serves whatever was stored on disk: old calls keep their v1 shape until re-analyzed.
+`ScryonAnalysis.CURRENT_SCHEMA_VERSION` is `3`. The endpoint serves whatever was stored on disk: old calls keep their v1/v2 shape until re-analyzed.
 
 ## What we get back
 
 ```
 {
-  schemaVersion: 2,
+  schemaVersion: 3,
   callType: ...,
   suggestedTitle: ...,
   oneLineSummary: ...,
-  executiveSummary: "<prose paragraph>",
+  executiveSummary: "<2-4 sentence headline>",
   executiveSummaryBullets: [
-    { text, category, importance, sourceSegmentIds }       // 8–15 detailed, speaker-neutral bullets
+    { header, startTimestamp, paragraphs: [ string ] }     // 3–6 blog-post sections covering the whole call
   ],
   conversationOutcome: ...,
   sections: [ Section ],                                   // dynamic, thematic
   keyDiscussionPoints: [
     { text, topic, phase, speakerId, ..., sourceSegmentIds } // chronological flow
   ],
-  actionItems: [ ActionItem ],
+  actionItems: [ ActionItem ],                              // discrete, launchable tasks
+  nextSteps: [
+    { text, ownerSpeaker, when, sourceSegmentIds }          // planned progression / "I'll do X" (not launchable)
+  ],
   followUps, importantDates, decisions, commitments,
   openQuestions, risks, opportunities,
   peopleMentioned, numbersAndAmounts,
@@ -67,15 +71,31 @@ The transcript is **post-resolution** — by the time it reaches the LLM, speake
 
 The full field reference lives in [API · Analysis](../api/analysis.md). What follows is the *design* of the new pieces.
 
-### Bullets: `executiveSummaryBullets`
+### Blog-post summary: `executiveSummaryBullets` (v3)
 
-`executiveSummaryBullets` is the **primary detailed summary** the app renders (Fathom-style). The prose `executiveSummary` is only a brief 2–4 sentence headline. Rules baked into the prompt:
+`executiveSummaryBullets` is the **primary detailed summary** the app renders (Fathom-style) — but as of v3 it's no longer a flat bullet list. Each entry is a **blog-post section**: a `header`, the call `startTimestamp` (`MM:SS`, or `HH:MM:SS` past the hour mark) where the section begins, and one or more prose `paragraphs`. The prose `executiveSummary` stays a brief 2–4 sentence headline; depth lives in the sections.
 
-- **8 to 15 bullets** for a typical 3–15 minute call (scale up for longer/denser calls; minimum 4 if substantive).
-- Each bullet is a **specific, self-contained, speaker-neutral fact** — include names, amounts, dates, and outcomes when the transcript provides them (describe the fact, not who voiced it). Do not omit material details.
-- Categories: `context | outcome | next_steps | concern | agreement | decision | blocker | observation | topic`.
-- Never duplicate the prose `executiveSummary` (a 2–4 sentence headline) or any other field — each fact appears once.
-- Cite `sourceSegmentIds` wherever possible.
+Rules baked into the prompt:
+
+- **3 to 6 sections** for a typical call (up to 10 for long/dense calls).
+- Each section corresponds to a meaningful phase or topic (e.g. "Pricing Discussion", "Support Escalation") and its paragraphs are specific, complete, and self-contained — no omitted material facts.
+- Written speaker-neutral — describe *what* happened, not *who* said it, except when naming someone matters (e.g. who to follow up with).
+- Never duplicate the prose `executiveSummary` or any other field — each fact appears once.
+
+> **v2 flat-bullet shape (deprecated).** Pre-v3 artifacts have `executiveSummaryBullets` entries shaped as `{ text, category, importance, sourceSegmentIds }` (categories: `context | outcome | next_steps | concern | agreement | decision | blocker | observation | topic`). Clients reading old, un-reanalyzed calls should handle both shapes or trigger a reanalysis.
+
+### Next steps vs. action items
+
+As of the same change, forward-looking statements are split into exactly one of two buckets — the LLM was previously lumping planned personal activities (*"I'll do the deck tomorrow"*) into `actionItems`, which made the Actions list noisy with things that aren't really launchable tasks.
+
+| | `actionItems[]` | `nextSteps[]` |
+|---|---|---|
+| What it captures | Discrete, standalone tasks worth tracking or launching (send something, email, schedule a meeting, call back, message, a concrete reminder). | The planned progression of the call — upcoming activities the speakers said they'd do next. Often phrased "I'll…" / "we'll…". |
+| Carries `intent` / `intentMetadata`? | Yes — see [intent classification](#intent-classification-v2-additive). | No — just `text`, optional `ownerSpeaker`, optional `when` (e.g. "tomorrow", "next week"), and `sourceSegmentIds`. |
+| Persisted to Postgres / editable? | Yes — see [API · Action items](../api/action-items.md). | No — lives only in the `ANALYSIS_JSON` artifact, rendered as its own section by the client. |
+| Example | "Email Alex the revised quote by Wednesday." | "I'll prepare the presentation deck for tomorrow's review." |
+
+When the model is unsure, the prompt tells it to prefer `nextSteps` for planned personal activities. The older, generic `followUps[]` field (`{ text, ownerSpeaker, sourceSegmentIds }`, no `when`) still exists in the schema for backward compatibility but the prompt no longer instructs the model to populate it meaningfully — treat `nextSteps` as the current source of truth for "what's next."
 
 ### Key discussion points
 

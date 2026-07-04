@@ -9,9 +9,11 @@ The vocabulary you will hear in PR review, design docs, and the on-call channel.
 | **Call** | One recorded phone conversation. The smallest unit of work in Scryon. Has a stable `callId`. |
 | **Call record** | The Postgres row in `call_records` representing a call's metadata and lifecycle state. |
 | **Call artifact** | A derived file produced by the pipeline (preprocessed audio, raw transcript, normalised transcript, analysis JSON). Stored in object storage. |
-| **Action item** | A structured TODO extracted from a call's analysis. Has `text`, `owner*`, optional `dueDate`, `status` (PENDING / COMPLETED), and `sourceSegmentIds`. |
+| **Action item** | A discrete, launchable TODO extracted from a call's analysis (or created manually). Has `title`, `owner*`, optional `dueDate`/`priority`, `status` (`OPEN` / `IN_PROGRESS` / `DONE` / `DISMISSED` — renamed from the old `PENDING` / `COMPLETED` in migration V19), `source` (`AI` / `MANUAL`), an `intent`, and `sourceSegmentIds`. Distinct from a **next step** (below). |
+| **Next step** | A planned, forward-looking statement a speaker made ("I'll do X tomorrow") — split out from action items so the Actions list isn't cluttered with things that aren't really launchable tasks. Not persisted to Postgres; lives only in the analysis JSON's `nextSteps[]`. |
 | **Direction** | `INCOMING` / `OUTGOING` / `UNKNOWN`. Influences default speaker resolution. |
-| **USER / CONTACT** | The two `role` values for a real speaker. USER = the owner of the phone (the Scryon user). CONTACT = the other party. |
+| **USER / CONTACT** (speaker role) | The two `role` values for a real speaker. USER = the owner of the phone (the Scryon user). CONTACT = the other party. Not to be confused with **Scryon contact**, below. |
+| **Scryon contact** | A row in the `contacts` table — a lightweight, user-owned address-book entry, separate from the Android device's system contacts. Auto-assigned to a call from the call-log `contactName` at upload time (matched by name), or linked manually via `PATCH /api/calls/{callId}/contact`. |
 
 ## Pipeline stages
 

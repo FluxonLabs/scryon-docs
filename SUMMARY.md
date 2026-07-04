@@ -32,6 +32,8 @@
 * [Transcripts](api/transcripts.md)
 * [Analysis](api/analysis.md)
 * [Action items](api/action-items.md)
+* [Contacts](api/contacts.md)
+* [Analytics](api/analytics.md)
 * [Voice profile](api/voice-profile.md)
 * [Users](api/users.md)
 
