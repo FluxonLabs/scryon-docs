@@ -4,9 +4,9 @@
 
 ## Onboarding
 
-* [Overview](onboarding/README.md)
-* [Backend engineer](onboarding/backend.md)
-* [Android engineer](onboarding/android.md)
+* [Overview](onboarding/overview.md)
+* [Backend engineer](onboarding/backend-engineer.md)
+* [Android engineer](onboarding/android-engineer.md)
 * [Glossary](onboarding/glossary.md)
 
 ## Getting Started
@@ -14,7 +14,7 @@
 * [Overview](getting-started/overview.md)
 * [Quickstart](getting-started/quickstart.md)
 * [Local setup](getting-started/local-setup.md)
-* [Configuration reference](getting-started/configuration.md)
+* [Configuration reference](getting-started/configuration-reference.md)
 
 ## Architecture
 
@@ -26,16 +26,16 @@
 
 ## API Reference
 
-* [Overview](api/overview.md)
-* [Authentication](api/authentication.md)
-* [Calls](api/calls.md)
-* [Transcripts](api/transcripts.md)
-* [Analysis](api/analysis.md)
-* [Action items](api/action-items.md)
-* [Contacts](api/contacts.md)
-* [Analytics](api/analytics.md)
-* [Voice profile](api/voice-profile.md)
-* [Users](api/users.md)
+* [Overview](api-reference/overview.md)
+* [Authentication](api-reference/authentication.md)
+* [Calls](api-reference/calls.md)
+* [Transcripts](api-reference/transcripts.md)
+* [Analysis](api-reference/analysis.md)
+* [Action items](api-reference/action-items.md)
+* [Contacts](api-reference/contacts.md)
+* [Analytics](api-reference/analytics.md)
+* [Voice profile](api-reference/voice-profile.md)
+* [Users](api-reference/users.md)
 
 ## Features
 
@@ -44,9 +44,9 @@
 * [Audio preprocessing](features/audio-preprocessing.md)
 * [Speaker resolution](features/speaker-resolution.md)
 * [Voice embedding](features/voice-embedding.md)
-* [LLM analysis](features/analysis.md)
+* [LLM analysis](features/llm-analysis.md)
 * [Semantic search](features/semantic-search.md)
-* [Sharing & summary digest](features/analysis-sharing.md)
+* [Sharing & summary digest](features/sharing-and-summary-digest.md)
 * [Search](features/search.md)
 
 ## Operations
@@ -65,32 +65,32 @@
 
 ## Android Client
 
-* [Overview](android/overview.md)
-* [Getting started](android/getting-started.md)
-* [Configuration](android/configuration.md)
-* [Architecture](android/architecture.md)
-* [Authentication](android/auth.md)
-* [Upload pipeline](android/upload-pipeline.md)
-* [Status lifecycle](android/status-lifecycle.md)
-* [Networking](android/networking.md)
-* [Local stores](android/local-stores.md)
-* [Permissions](android/permissions.md)
-* [Voice profile setup](android/voice-profile.md)
-* [New-recording notifications](android/notifications.md)
-* [Delete & cancel](android/delete-and-cancel.md)
-* [Troubleshooting](android/troubleshooting.md)
+* [Overview](android-client/overview.md)
+* [Getting started](android-client/getting-started.md)
+* [Configuration](android-client/configuration.md)
+* [Architecture](android-client/architecture.md)
+* [Authentication](android-client/authentication.md)
+* [Upload pipeline](android-client/upload-pipeline.md)
+* [Status lifecycle](android-client/status-lifecycle.md)
+* [Networking](android-client/networking.md)
+* [Local stores](android-client/local-stores.md)
+* [Permissions](android-client/permissions.md)
+* [Voice profile setup](android-client/voice-profile-setup.md)
+* [New-recording notifications](android-client/new-recording-notifications.md)
+* [Delete & cancel](android-client/delete-and-cancel.md)
+* [Troubleshooting](android-client/troubleshooting.md)
 
 ## Privacy
 
-* [Privacy & security](privacy-and-security.md)
+* [Privacy & security](privacy/privacy-and-security.md)
 
 ## Templates
 
-* [Feature doc](templates/feature.md)
+* [Feature doc](templates/feature-doc.md)
 * [API endpoint](templates/api-endpoint.md)
 * [Runbook](templates/runbook.md)
-* [Architecture decision record](templates/adr.md)
-* [Post-mortem](templates/postmortem.md)
+* [Architecture decision record](templates/architecture-decision-record.md)
+* [Post-mortem](templates/post-mortem.md)
 
 ***
 
