@@ -82,6 +82,7 @@ const sidebars = {
         'operations/monitoring',
         'operations/runbook',
         'operations/troubleshooting',
+        'operations/play-store-submission',
       ],
     },
     {

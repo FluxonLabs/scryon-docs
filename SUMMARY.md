@@ -55,6 +55,7 @@
 * [Monitoring](operations/monitoring.md)
 * [Runbook](operations/runbook.md)
 * [Troubleshooting](operations/troubleshooting.md)
+* [Play Store submission](operations/play-store-submission.md)
 
 ## Development
 

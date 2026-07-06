@@ -113,6 +113,19 @@ UPDATE call_records SET status='QUEUED'
 WHERE status='COMPLETED' AND created_at > now() - interval '7 days';
 ```
 
+## Database backups
+
+Two independent layers, so a single provider outage or a forgotten plan setting doesn't mean zero recovery options:
+
+1. **Railway's managed Postgres backups** (dashboard-configured — verify the plan and retention window in the Railway project settings; this repo has no visibility into whether they're enabled).
+2. **`backup-db.yml`** (`.github/workflows/backup-db.yml` in scryon-backend) — a scheduled GitHub Action (daily, 03:00 UTC) that runs `scripts/backup-db.sh` via `railway run --service <backend> --environment production`. That script:
+   - `pg_dump`s the production database (inherits `DATABASE_URL` from the linked Railway environment — no credentials duplicated as GitHub secrets),
+   - gzips it and uploads to the **same S3-compatible object storage bucket** the app already uses, under `db-backups/`,
+   - prunes dumps older than 30 days (`BACKUP_RETENTION_DAYS`, overridable).
+   - Can be triggered manually via `workflow_dispatch` before a risky migration or deploy.
+
+   Requires the `RAILWAY_TOKEN_PROD` secret and `RAILWAY_SERVICE_NAME` var (already used by `deploy-prod.yml`) — no new secrets needed.
+
 ## Restore from snapshot
 
 Postgres is the source of truth. Object storage artifacts are derivable (mostly):
@@ -122,7 +135,7 @@ Postgres is the source of truth. Object storage artifacts are derivable (mostly)
 
 For a full restore:
 
-1. Restore Postgres from your managed snapshot.
+1. Restore Postgres — either from Railway's managed snapshot, **or** from the latest `db-backups/scryon-backup-*.sql.gz` object (download it, `gunzip`, then `psql "$DATABASE_URL" < scryon-backup-*.sql` against a fresh database before cutting traffic over).
 2. Restore object storage from versioning / replicated bucket.
 3. Call `/api/health` to confirm the binary is healthy.
 4. Spot-check `/api/calls` and `/api/calls/{id}/transcript` for a known call.

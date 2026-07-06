@@ -47,6 +47,32 @@ This deletes:
 
 Irreversible. Intended for GDPR-style "delete my data" requests.
 
+## GET `/api/users/me/limits`
+
+Configured upload guard-rail limits (see [`UploadAbuseGuardService`](../architecture/call-processing-pipeline.md)) alongside the caller's current standing against each one — the same numbers that would produce a `429` on `POST /api/calls/analyze` if exceeded. Intended for a client-side "your limits" display, not for making upload decisions itself (the server is still authoritative).
+
+### Response — `200 OK`
+
+```json
+{
+  "maxUploadsPerHour": 20,
+  "uploadsThisHour": 6,
+  "maxConcurrentActiveCalls": 5,
+  "activeCalls": 1,
+  "maxMonthlyUploadBytes": 10737418240,
+  "uploadedBytesThisMonth": 1288490188
+}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `maxUploadsPerHour` | int | Rolling 1-hour cap on new uploads. |
+| `uploadsThisHour` | long | Uploads created by this user in the last hour. |
+| `maxConcurrentActiveCalls` | int | Cap on calls in a non-terminal status at once. |
+| `activeCalls` | long | This user's calls currently `QUEUED`/`PROCESSING`/`TRANSCRIBING`/`ANALYZING`. |
+| `maxMonthlyUploadBytes` | long | Rolling 30-day upload volume cap, in bytes. |
+| `uploadedBytesThisMonth` | long | Bytes uploaded by this user in the last 30 days. |
+
 ## GET `/api/users/me/stats`
 
 Lightweight aggregates suitable for a dashboard header.
