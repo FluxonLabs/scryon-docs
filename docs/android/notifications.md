@@ -48,7 +48,25 @@ Turning the toggle off in Settings:
 2. Cancels the periodic WorkManager job.
 3. Leaves the watermark and dedupe set intact (so re-enabling doesn't notify for old files).
 
+## Other Android notifications
+
+This page is specifically about the local, MediaStore-driven "new recording found" notification. The app has two other notification sources, both server-triggered via FCM rather than local device state — full architecture in **[Push notifications](../features/push-notifications.md)**:
+
+- **Transcription results** — a call reaching `COMPLETED`/`FAILED` pushes a system notification (channel `transcription_results`).
+- **Admin account events** — an admin suspending/disabling the account, granting credits, or changing the plan pushes either an immediate in-app dialog (if the app is foregrounded) or a system notification (channel `account_events`, if backgrounded).
+
+### Account-status UI, beyond notifications
+
+Separately from any notification, `AuthGate` reads the signed-in account's `accountStatus` (from `GET /api/users/me`, refreshed on every launch and again after an `account_status` push) and adjusts the UI directly:
+
+- **SUSPENDED** — a one-time dismissible `AlertDialog` on top of the normal shell (most of the app still works; only new uploads are blocked), plus a persistent banner on the Profile and Limits screens.
+- **DISABLED** — the normal shell isn't shown at all; `DisabledAccountScreen` replaces it with a full-screen explanation and a Sign-out button, since every backend request 403s for a disabled account anyway.
+
+See [Admin console § Account status](../admin/overview.md#account-status) for what triggers each state.
+
 ## Related
 
 - **[Permissions](permissions.md)** — `POST_NOTIFICATIONS` and `READ_MEDIA_AUDIO` requirements.
 - **[Architecture](architecture.md)** — `CallRecordingScanner` heuristics.
+- **[Push notifications](../features/push-notifications.md)** — the FCM-driven notifications above, end to end.
+- **[Admin console](../admin/overview.md)** — what an admin action does to an account.

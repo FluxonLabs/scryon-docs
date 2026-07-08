@@ -27,6 +27,8 @@ const sidebars = {
         'features/search',
         'features/audio-preprocessing',
         'features/analysis-sharing',
+        'features/plans-and-billing',
+        'features/push-notifications',
       ],
     },
     {
@@ -43,6 +45,7 @@ const sidebars = {
         'api/analytics',
         'api/voice-profile',
         'api/users',
+        'api/admin',
       ],
     },
     {
@@ -62,6 +65,20 @@ const sidebars = {
       items: [
         'android/permissions',
         'android/notifications',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Dashboard',
+      items: [
+        'dashboard/overview',
+      ],
+    },
+    {
+      type: 'category',
+      label: 'Admin',
+      items: [
+        'admin/overview',
       ],
     },
     {

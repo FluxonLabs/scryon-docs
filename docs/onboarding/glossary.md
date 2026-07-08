@@ -15,6 +15,17 @@ The vocabulary you will hear in PR review, design docs, and the on-call channel.
 | **USER / CONTACT** (speaker role) | The two `role` values for a real speaker. USER = the owner of the phone (the Scryon user). CONTACT = the other party. Not to be confused with **Scryon contact**, below. |
 | **Scryon contact** | A row in the `contacts` table — a lightweight, user-owned address-book entry, separate from the Android device's system contacts. Auto-assigned to a call from the call-log `contactName` at upload time (matched by name), or linked manually via `PATCH /api/calls/{callId}/contact`. |
 
+## Billing & admin
+
+| Term | Meaning |
+|---|---|
+| **Plan** | `FREE` or `PRO`. Drives monthly minute / daily transcript caps. See [Plans & billing](../features/plans-and-billing.md). |
+| **Top-up** | A one-time purchased (or admin-granted) minute-and-transcript credit for a Free account. Never expires; distinct from the plan's own monthly allowance. |
+| **`billing_enabled`** | The admin-controlled runtime flag gating whether the plan/limit system is actually enforced. Seeded off. Not to be confused with the env-var-style feature flags below — see the next entry. |
+| **Admin allowlist** | `SCRYON_ADMIN_ALLOWED_EMAILS` — a config-driven list of admin emails. No DB role, no separate login; same Firebase account, checked against this list on every request. |
+| **Account status** | `ACTIVE` / `SUSPENDED` / `DISABLED`, admin-set. SUSPENDED blocks new uploads only; DISABLED blocks every request. See [Admin console](../admin/overview.md#account-status). |
+| **Audit log** | `admin_audit_log` — who did what admin action, to what, when. |
+
 ## Pipeline stages
 
 | Term | Meaning |
@@ -77,7 +88,7 @@ The vocabulary you will hear in PR review, design docs, and the on-call channel.
 | **Idempotent** | Doing it twice produces the same result. Applied to upload accept, pipeline stages, and worker retries. |
 | **Foreground service** | An Android service with a persistent notification. Survives app kill. The upload worker promotes to one after ~4 s grace. |
 | **Per-uid namespacing** | Every local store is keyed by Firebase `uid` so two accounts on one device cannot collide. |
-| **Feature flag** | Env var (or backend flag) that gates a feature. Default off in dev. Examples: `PYANNOTE_ENABLED`, `SCRYON_VOICE_EMBEDDING_ENABLED`. |
+| **Feature flag** | Two kinds in this codebase: an **env var** that gates a feature at deploy time (e.g. `PYANNOTE_ENABLED`, `SCRYON_VOICE_EMBEDDING_ENABLED`, default off in dev), or a **DB-backed admin flag** (`feature_flags` table, e.g. `billing_enabled`) toggled live from the [admin console](../admin/overview.md) with no redeploy. |
 | **Stub provider** | A non-network implementation of an external provider used in local dev and tests. |
 | **Testcontainers** | Library that spins up real Postgres in tests. Used in backend service tests. |
 

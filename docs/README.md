@@ -133,6 +133,8 @@ The codebase enforces these — see [Privacy & security](privacy-and-security.md
 | **[API Reference](api/overview.md)** | Anyone integrating with the REST API. |
 | **[Features](features/diarization.md)** | Deep dives on diarization, transcription, audio preprocessing, speaker resolution, voice embeddings, analysis. |
 | **[Android Client](android/overview.md)** | Engineers working on the native Android app. |
+| **[Dashboard](dashboard/overview.md)** | Engineers working on the web client / admin console. |
+| **[Admin](admin/overview.md)** | Anyone operating the product day-to-day — feature flags, user management, account status. |
 | **[Operations](operations/deployment.md)** | On-call engineers — deploy, monitor, run, troubleshoot. |
 | **[Development](development/contributing.md)** | Contributing, testing, coding conventions, Flyway migrations. |
 | **[Privacy & Security](privacy-and-security.md)** | The privacy contract, hard rules, threat model, GDPR. |
@@ -156,6 +158,8 @@ The codebase enforces these — see [Privacy & security](privacy-and-security.md
 | Voice embedding / voice profile | Beta, opt-in via `SCRYON_VOICE_EMBEDDING_ENABLED` |
 | Webhook callbacks for transcription | Beta, opt-in via `SCRYON_TRANSCRIPTION_CALLBACK_ENABLED` |
 | Observability stack (Sentry, Prometheus, OTLP) | Stable |
+| Plans & billing (Free/Pro tiers, top-ups) | Fully implemented, dark in production — opt-in via the admin console's `billing_enabled` flag |
+| Admin console (feature flags, user management, account status, audit log) | Stable |
 
 ## Where the source lives
 
@@ -163,4 +167,5 @@ The codebase enforces these — see [Privacy & security](privacy-and-security.md
 |---|---|
 | [`scryon-backend`](https://github.com/FluxonLabs/scryon-backend) | Spring Boot service (Java 21). |
 | [`scryon-android`](https://github.com/FluxonLabs/scryon-android) | Native Android client (Kotlin + Compose). |
+| [`scryon-dashboard`](https://github.com/FluxonLabs/scryon-dashboard) | Web client + admin console (Next.js). See [Dashboard overview](dashboard/overview.md). |
 | [`scryon-docs`](https://github.com/FluxonLabs/scryon-docs) | This documentation site. |

@@ -22,9 +22,15 @@ The source of truth is `src/main/resources/application.yml` in `scryon-backend`.
 |---|---|---|
 | `SCRYON_API_KEY` | `(empty)` | Optional shared-secret header. If unset the guard is off — local dev only. |
 | `FIREBASE_PROJECT_ID` | `(empty)` | When set, every `/api/**` request needs a valid Firebase ID token. |
-| `FIREBASE_CLIENT_EMAIL` | `(empty)` | Service-account client email — enables Admin SDK verification. |
+| `FIREBASE_CLIENT_EMAIL` | `(empty)` | Service-account client email — enables Admin SDK verification. Also the credential [push notifications](../features/push-notifications.md) reuse — no separate FCM config. |
 | `FIREBASE_PRIVATE_KEY` | `(empty)` | PEM-encoded service-account private key. |
 | `SCRYON_CORS_ALLOWED_ORIGINS` | `(empty)` | Comma-separated allowlist. Empty = no CORS headers. |
+
+## Admin
+
+| Variable | Default | Notes |
+|---|---|---|
+| `SCRYON_ADMIN_ALLOWED_EMAILS` | `(empty)` | Comma-separated, case-insensitive email allowlist. Empty = nobody is admin. See [Admin console](../admin/overview.md). |
 
 ## Observability
 
@@ -129,6 +135,21 @@ The source of truth is `src/main/resources/application.yml` in `scryon-backend`.
 | `OBJECT_STORAGE_PATH_STYLE_ACCESS` | `true` | Disable for path-aware AWS S3. |
 | `OBJECT_STORAGE_LOCAL_PATH` | `./var/storage` | Used only when provider = `local`. |
 | `OBJECT_STORAGE_TEMP_AUDIO_TTL_HOURS` | `24` | How long temp audio survives before sweep. |
+
+## Plans & billing
+
+> Unlike every other section on this page, these are **Java-code defaults** (`ScryonProperties.Plans`), not env vars — there's no `application.yml` entry wiring an `SCRYON_PLANS_*` variable to any of them today. Spring's relaxed binding would pick one up if it were added, but don't assume one exists just because the pattern elsewhere on this page suggests it. To change these values today, edit `ScryonProperties.Plans` and redeploy.
+
+| Setting | Default | Notes |
+|---|---|---|
+| Free — minutes/month | `150` | |
+| Free — transcripts/day | `3` | |
+| Pro — price | `999` (cents) | |
+| Pro — minutes/month | `1000` | |
+| Pro — overage rate | `0.025` ($/min) | Tracked, never blocks. |
+| Top-up SKUs | `topup_60min` / `topup_150min` / `topup_400min` | See [Plans & billing](../features/plans-and-billing.md) for the full grant/price table. |
+
+Whether any of this is actually enforced is a separate, run-time switch — see `billing_enabled` under [Admin console](../admin/overview.md).
 
 ## Async / background jobs
 

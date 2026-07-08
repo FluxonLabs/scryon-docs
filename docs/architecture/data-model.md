@@ -10,6 +10,7 @@ erDiagram
     users ||--o| user_voice_profiles : "0..1 per user"
     users ||--o{ call_processing_events : "scoped to"
     users ||--o{ contacts : owns
+    users ||--o{ topup_purchases : purchases
     call_records ||--o{ action_items : extracts
     call_records ||--o{ call_artifacts : "1 per artifact type"
     call_records ||--o{ call_processing_events : emits
@@ -21,6 +22,30 @@ erDiagram
         text external_user_id UK "Firebase UID"
         text email
         text display_name
+        text plan "FREE / PRO"
+        int topup_minutes_balance
+        int topup_transcripts_balance
+        text account_status "ACTIVE / SUSPENDED / DISABLED"
+        text fcm_token
+    }
+    feature_flags {
+        text flag_key PK
+        bool enabled
+        text updated_by
+    }
+    admin_audit_log {
+        uuid id PK
+        text actor_email
+        text action
+        text target_type
+        text target_id
+    }
+    topup_purchases {
+        uuid id PK
+        uuid user_id
+        text product_sku
+        int minutes_granted
+        int transcripts_granted
     }
     call_records {
         uuid id PK
@@ -87,6 +112,9 @@ erDiagram
 | `call_sentiment_summary` | One row per completed call, denormalising `sentiment` / `tone` for analytics. | Backs [`GET /api/analytics/vibe`](../api/analytics.md). |
 | `user_voice_profiles` | Optional voiceprint per user. | At most one row per user; `consent_version` tracks consent UX. |
 | `call_processing_events` | Pipeline event log. | High-cardinality; retention policy enforced by sweeper. |
+| `topup_purchases` | Audit trail of top-up purchases. | See [Plans & billing](../features/plans-and-billing.md). Not yet written by a real payment webhook — `PlanUsageService.creditTopup` exists but isn't wired to an endpoint. |
+| `feature_flags` | Admin-controlled runtime switches. | Uncached reads by design — see [Admin console](../admin/overview.md). |
+| `admin_audit_log` | Append-only trail of admin actions. | Write-only from enforcement's perspective — never read by any enforcement path. |
 
 ## `users`
 
@@ -94,8 +122,14 @@ erDiagram
 |---|---|---|
 | `id` | `uuid` PK | Server-generated. |
 | `external_user_id` | `text` UNIQUE | Firebase UID, or `local-dev`. |
-| `email` | `text` | Nullable; sourced from Firebase claims. |
+| `email` | `text` | Nullable; sourced from Firebase claims. Also what `AdminAuthorizationService` checks against the allowlist. |
 | `display_name` | `text` | Used by the speaker resolver. |
+| `fcm_token` | `text` | Device push token, registered via `PATCH /api/users/me`. Null until the client registers one. See [Push notifications](../features/push-notifications.md). |
+| `plan` | `text` | `FREE` (default) or `PRO`. Added V24. See [Plans & billing](../features/plans-and-billing.md). |
+| `topup_minutes_balance` / `topup_transcripts_balance` | `int` | One-time purchased/granted credit, never expires, drawn down before the base monthly allowance resets. Added V24/V25. |
+| `plans_intro_shown_at` | `timestamptz`, nullable | Gates the one-time post-login Plans intro screen on Android. Added V24. |
+| `account_status` | `text` | `ACTIVE` (default) / `SUSPENDED` / `DISABLED`. Added V27. See [Admin console § Account status](../admin/overview.md#account-status). |
+| `account_status_reason` / `account_status_updated_at` / `account_status_updated_by` | `text` / `timestamptz` / `text` | Set together whenever an admin changes `account_status`. Added V27. |
 | `created_at` / `updated_at` | `timestamptz` | |
 
 ## `call_records`
@@ -200,6 +234,44 @@ One row per completed call, denormalising the `sentiment` / `tone` fields from `
 | `duration_ms` | Set by `ProcessingEventLogger` at end of stage. |
 | `error_code` | Short opaque code. |
 | `error_message` | Sanitized. |
+| `created_at` | |
+
+## `topup_purchases`
+
+Audit trail of top-up purchases (see [Plans & billing](../features/plans-and-billing.md)). Added V24; `transcripts_granted` added V25.
+
+| Column | Notes |
+|---|---|
+| `id` (PK) | |
+| `user_id` | No FK constraint (matches existing schema convention). |
+| `product_sku` | e.g. `topup_150min`. |
+| `minutes_granted` / `transcripts_granted` | Copied from the SKU's config at purchase time — a later price/grant change never rewrites history. |
+| `amount_paid_cents` / `currency` | |
+| `provider` / `provider_reference` | e.g. Play Billing / Stripe transaction id. |
+| `created_at` | |
+
+## `feature_flags`
+
+Admin-controlled runtime switches. Added V26. See [Admin console](../admin/overview.md).
+
+| Column | Notes |
+|---|---|
+| `flag_key` (PK) | `text`, not an enum — a new flag doesn't need a migration. |
+| `enabled` | `boolean`, defaults `false`. |
+| `updated_at` / `updated_by` | Stamped on every `PATCH /api/admin/feature-flags/{key}`. |
+
+## `admin_audit_log`
+
+Append-only trail of every admin console action. Added V27. See [Admin console § Audit log](../admin/overview.md#audit-log).
+
+| Column | Notes |
+|---|---|
+| `id` (PK) | |
+| `actor_email` | The admin who performed the action. |
+| `action` | `FLAG_TOGGLE` / `CREDIT_GRANT` / `ACCOUNT_STATUS_CHANGE` / `PLAN_CHANGE`. |
+| `target_type` | `"feature_flag"` or `"user"`. |
+| `target_id` | Flag key or user UUID, stored as text — no FK constraint. |
+| `details` | Free-form human-readable summary, not machine-parsed. |
 | `created_at` | |
 
 ## Conventions

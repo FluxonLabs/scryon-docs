@@ -121,6 +121,7 @@ Speed-read these once. The full glossary lives at [Glossary](glossary.md).
 | **Backend team** (Spring Boot, Java 21, Postgres, the pipeline, observability) | [Backend onboarding](backend.md) |
 | **Android team** (Kotlin, Compose, WorkManager, Firebase, the upload pipeline) | [Android onboarding](android.md) |
 | **Both** (full-stack) | Start with [Backend onboarding](backend.md), then [Android onboarding](android.md). The backend mental model is the harder one. |
+| **Dashboard / admin surface** (Next.js, the web client, the admin console) | Start with [Backend onboarding](backend.md) for the pipeline mental model, then read [Dashboard overview](../dashboard/overview.md) and [Admin console](../admin/overview.md) directly — there isn't a separate onboarding page for this surface yet; those two pages plus [API · Admin](../api/admin.md) are the current entry point. |
 
 Whichever track you pick, you'll come back here for the glossary, the principles, and the architecture picture.
 
